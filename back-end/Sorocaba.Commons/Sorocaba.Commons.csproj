@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{7EF3F524-8BF8-481A-8DB6-914ED9EE1152}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Sorocaba.Commons</RootNamespace>
+    <AssemblyName>Sorocaba.Commons</AssemblyName>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EntityFramework">
+      <HintPath>..\packages\EntityFramework.6.1.1\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer">
+      <HintPath>..\packages\EntityFramework.6.1.1\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.6.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Ninject, Version=3.2.0.0, Culture=neutral, PublicKeyToken=c7192dc5380945e7, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Ninject.3.2.2.0\lib\net45-full\Ninject.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Linq.Dynamic">
+      <HintPath>..\packages\System.Linq.Dynamic.1.0.2\lib\net40\System.Linq.Dynamic.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Net.Http.Formatting, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="System.Web.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Data\Conventions\CustomConvention.cs" />
+    <Compile Include="Data\DataReaderWrapper.cs" />
+    <Compile Include="Data\Pagination\FilterField.cs" />
+    <Compile Include="Data\Pagination\PaginatedResult.cs" />
+    <Compile Include="Data\Pagination\PaginationEngine.cs" />
+    <Compile Include="Data\Pagination\PaginationException.cs" />
+    <Compile Include="Data\Pagination\PaginationParameters.cs" />
+    <Compile Include="Data\Pagination\PaginationParametersParser.cs" />
+    <Compile Include="Data\Pagination\SortField.cs" />
+    <Compile Include="Net\Tasks\IProgressTracker.cs" />
+    <Compile Include="Net\Tasks\StreamProgressTracker.cs" />
+    <Compile Include="Web\Exception\IBussinessException.cs" />
+    <Compile Include="Web\Exception\IDataException.cs" />
+    <Compile Include="Web\Exception\Translator\CustomExceptionFilterAttribute.cs" />
+    <Compile Include="Web\Exception\Translator\DefaultDbConstraintTranslator.cs" />
+    <Compile Include="Web\Exception\Translator\DefaultExceptionTranslator.cs" />
+    <Compile Include="Web\Exception\Translator\IDbConstraintTranslator.cs" />
+    <Compile Include="Web\Exception\Translator\IExceptionTranslator.cs" />
+    <Compile Include="Web\Exception\Translator\ValidationError.cs" />
+    <Compile Include="Net\Extensions\StringExtensions.cs" />
+    <Compile Include="Web\Json\AjaxRequestResult.cs" />
+    <Compile Include="Web\Json\BaseController.cs" />
+    <Compile Include="Web\Json\DateConverters\LocalDateConverter.cs" />
+    <Compile Include="Web\Json\DateConverters\LocalDateTimeConverter.cs" />
+    <Compile Include="Web\Json\DateConverters\LocalDateTimeMillisConverter.cs" />
+    <Compile Include="Web\Json\DateConverters\LocalTimeConverter.cs" />
+    <Compile Include="Ninject\NinjectDependencyResolver.cs" />
+    <Compile Include="Ninject\NinjectDependencyScope.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
