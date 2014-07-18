@@ -1,0 +1,51 @@
+/*******************************************************************************
+*   Boilerplate - Favor Não Alterar
+*******************************************************************************/
+
+html, body {
+    height: 100%;
+}
+
+#main {
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+.navbar-brand {
+    color: #ffdd4c !important;
+}
+
+.wrapper {
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+    margin-bottom: -54px;
+    padding: 0 !important;
+}
+
+.push {
+    height: 54px;
+}
+
+.footer {
+    padding: 0;
+    margin: 0;
+    width: auto;
+    min-height: 54px;
+    text-align: center;
+    border-radius: 0;
+}
+
+.footer-descricao {
+    color: #ccc;
+}
+
+.logotipo-prefeitura {
+    padding-left: 20px;
+    padding-top: 3px;
+}
+
+.logotipo-setor {
+    width: 50px;
+    margin-top: 5px;
+}

@@ -1,0 +1,264 @@
+@import url('bootstrap.css');
+@import url('boilerplate.css');
+
+body {
+	background: #f5f5f5;
+}
+
+form {
+	margin-bottom: 0;
+}
+
+a:focus {
+	outline: none;
+}
+
+.form-group > label {
+	color: slategray;
+}
+
+.input-xs {
+	height: 25px;
+	padding: 1px 5px;
+	font-size: 12px;
+	line-height: 1.5;
+	border-radius: 3px;
+}
+
+.has-error > label {
+	color: #a94442;
+}
+
+h1, h2, h3 {
+	margin-top: 0 !important;
+}
+
+h1 > .label, h2 > .label, h3 > .label {
+	display: inline-block;
+	vertical-align:middle;
+	margin-top: -5px;
+}
+
+.nav-tabs > li.active > a, .nav-tabs > li.active > a:hover {
+	color: tomato;
+}
+
+.tab-content {
+	background: #ffffff;
+	padding: 10px;
+	border-left: solid 1px #dddddd;
+	border-right: solid 1px #dddddd;
+	border-bottom: solid 1px #dddddd;
+}
+
+/* Login Form */
+.login-block {
+	width: 350px;
+	margin: auto;
+}
+
+.login-block .panel-body {
+	padding: 15px 0;
+}
+
+.login-block-sigla {
+	margin-top: -20px;
+	font-family: verdana;
+	font-size: 50px;
+	font-weight: bold;
+	color: salmon;
+}
+
+.login-block-descricao {
+	margin-top: -10px;
+	margin-bottom: 10px;
+	font-family: verdana;
+	font-size: 11px;
+	text-align: center;
+	color: slategray;
+	letter-spacing: 0.5px;
+}
+
+/* Modal */
+.modal {
+	padding-top: 30px;
+}
+
+.modal-header, .modal-body, .modal-footer {
+	padding: 10px;
+}
+
+.modal-header, .modal-footer {
+	background: #f5f5f5;
+}
+
+.modal-footer {
+	min-height: 46px;
+}
+
+.modal-header {
+	border-radius: 6px 6px 0 0;
+}
+
+.modal-footer {
+	border-radius: 0 0 6px 6px;
+}
+
+.modal-medium {
+	width: 800px;
+}
+
+.modal-big {
+	width: 80%;
+}
+
+/* Multimodal Notify*/
+.bootstrap-growl {
+	padding: 8px;
+}
+
+/* Campos obrigatóros */
+.required {
+	background: #f7f7b6;
+}
+
+/* Table padrão */
+.table-fixed {
+	table-layout: fixed;
+	margin-bottom: 10px;
+	background: #ffffff;
+	font-size: 12px;
+}
+
+.table-fixed td {
+	padding: 3px !important;
+	background: #ffffff;
+	line-height: 23px !important;
+}
+
+.table-fixed th {
+	text-align: center;
+}
+
+/* Colunas clicáveis */
+.clickable {
+	cursor: pointer;
+}
+
+/* Table Sorteios */
+.table-sorteios th:nth-child(1),
+.table-sorteios th:nth-child(3) {
+	width: 140px;
+}
+
+.table-sorteios th:nth-child(4) {
+	width: 55px;
+}
+
+.table-sorteios td:nth-child(1),
+.table-sorteios td:nth-child(3) {
+	text-align: center;
+}
+
+/* Table Candidatos */
+.table-candidatos th:nth-child(2) {
+	width: 90px;
+}
+
+.table-candidatos th:nth-child(3) {
+	width: 150px;
+}
+
+.table-candidatos th:nth-child(4) {
+	width: 100px;
+}
+
+.table-candidatos td {
+	text-align: center;
+}
+
+/* Table Listas */
+.table-listas th:nth-child(2) {
+	width: 140px;
+}
+
+.table-listas th:nth-child(3) {
+	width: 130px;
+}
+
+.table-listas th:nth-child(4) {
+	width: 90px;
+}
+
+.table-listas td,
+.table-listas td input {
+	text-align: center;
+}
+
+/* Table Candidatos Lista */
+.table-candidatos-lista th:nth-child(2),
+.table-candidatos-lista th:nth-child(4) {
+	width: 90px;
+}
+
+.table-candidatos-lista th:nth-child(3) {
+	width: 145px;
+}
+
+.table-candidatos-lista td {
+	text-align: center;
+}
+
+/* HTML 5 Datepicker */
+input[type=date]::-webkit-clear-button,
+input[type=date]::-webkit-inner-spin-button {
+	display: none;
+	/*-webkit-appearance: none;*/
+}
+
+input[type=date]::-ms-clear {
+	display: none;
+}
+
+input[type=date]::-webkit-calendar-picker-indicator {
+	color: #ffffff;
+	position: relative;
+	font-family: 'Glyphicons Halflings';
+	z-index: 0;
+}
+
+input[type=date].required::-webkit-calendar-picker-indicator {
+	color: #f7f7b6;
+	position: relative;
+	font-family: 'Glyphicons Halflings';
+	z-index: 0;
+}
+
+input[type=date]::-webkit-calendar-picker-indicator:before {
+	content: "\e109";
+	color: #000000;
+	display: block;
+	left: 8px;
+	position: absolute;
+	top: -10px;
+	z-index: 1;
+}
+
+input[type=date]::-webkit-calendar-picker-indicator:hover {
+	background: #ffffff;
+}
+
+input[type=date].required::-webkit-calendar-picker-indicator:hover {
+	background: #f7f7b6;
+}
+
+/* Paginator */
+.paginator {
+	padding: 6px 5px 0;
+	background: #ffffff;
+	border: solid 1px #ddd;
+}
+
+.paginator select, .paginator input {
+	color: #31708f;
+}

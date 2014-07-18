@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+	<head>
+		<meta charset="UTF-8">
+		 <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<title>Nossa Casa - Sorteio</title>
+		<!-- <link rel="shortcut icon" href="app/img/favicon.ico"> -->
+		<!-- build:css css/application.min.css?v=@@versao -->
+		<link rel="stylesheet" type="text/css" href="css/main.css?v=@@versao">
+		<!-- /build -->
+	</head>
+	<body>
+		<div class="wrapper">
+			<!-- Le navbar -->
+			<div id="menu"></div>
+			<!-- Le main element -->
+			<div id="main"></div>
+			<!-- Div responsavel por fazer o balanceamento do rodapé -->
+			<div class="push"></div>
+		</div>
+		<!-- Rodapé -->
+		<div class="navbar navbar-inverse footer">
+			<div class="navbar-inner">
+				<img alt="Divisão de Sistemas" class="logotipo-setor"/>
+				<br>
+				<span class="footer-descricao"><small>Área de Tecnologia da Informação - Divisão de Sistemas</small></span>
+			</div>
+		</div>
+		<!-- build:js js/application.min.js?v=@@versao -->
+		<script src="temp/libs.js?v=@@versao"></script>
+		<script src="temp/templates.js?v=@@versao"></script>
+		<script src="temp/application.js?v=@@versao"></script>
+		<!-- /build -->
+		<script>
+			(function() {
+				var $ = require('jquery'),
+					Config = require('config');
+				$('.logotipo-setor').attr('src', Config.CDN_URL + '/logotipo_setor.png');
+			})();
+		</script>
+	</body>
+</html>

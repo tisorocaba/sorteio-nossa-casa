@@ -1,0 +1,25 @@
+{
+    "routes": {
+        "*404"              : "application#pagina404",
+        ""                  : "sorteios#listar",
+        "login"             : "auth#login",
+        "logout"            : "auth#logout",
+        "sorteios"          : "sorteios#listar",
+        "sorteios/(:param)" : "sorteios#callAction"
+    },
+
+    "regions": {
+        "menu" : "#menu",
+        "main" : "#main"
+    },
+
+    "BLACKLIST_ROUTES": [
+        "login",
+        "logout",
+        "sorteios/(:param)"
+    ],
+
+    "CDN_URL": "http://servicos.sorocaba.sp.gov.br/cdn",
+    "BASE_URL": "http://pms-teweb02:9090/nossacasa-sorteio",
+    "ENV": "TESTE"
+}
