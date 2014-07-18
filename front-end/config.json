@@ -20,6 +20,6 @@
     ],
 
     "CDN_URL": "http://servicos.sorocaba.sp.gov.br/cdn",
-    "BASE_URL": "http://pms-teweb02:9090/nossacasa-sorteio",
+    "BASE_URL": "URL_DO_BACKEND",
     "ENV": "TESTE"
 }
