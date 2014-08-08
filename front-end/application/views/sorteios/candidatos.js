@@ -1,10 +1,12 @@
 var Marionette = require('marionette'),
+	Handlebars = require('handlebars.runtime')['default'],
 	Candidatos = require('collections/candidatos'),
-	Gridder = require('gridder'),
+	ProgressBarView = require('views/sorteios/progressBar'),
 	Paginator = require('paginator').paginator,
 	Multimodal = require('multimodal'),
 	Config = require('config'),
-	Events = require('events');
+	Events = require('events'),
+	Searcher = require('searcher');
 
 module.exports = Marionette.ItemView.extend({
 	template: 'sorteios/candidatos.tpl',
@@ -16,6 +18,7 @@ module.exports = Marionette.ItemView.extend({
 
 	initialize: function(options) {
 		this.parentView = options.parentView;
+
 		var that = this;
 
 		this.collection = new Candidatos(null, {idSorteio: this.model.get('id')});
@@ -23,11 +26,18 @@ module.exports = Marionette.ItemView.extend({
 		Events.on('hide_upload_controls', function() {
 			that.$('.upload-controls').addClass('hide');
 		});
+
+		Events.on('reload_collection_candidatos', function() {
+			that.collection = new Candidatos(null, {idSorteio: that.model.get('id')});
+			that.render();
+		});
 	},
 
-	onShow: function() {
+	onRender: function() {
+		this.listenTo(this.collection, 'request', this.setGridder);
 		this.setGridder();
 		this.setPaginator();
+		this.setSearcher();
 
 		if(this.parentView.listas.currentView.collection.where({sorteada: true}).length > 0) {
 			Events.trigger('hide_upload_controls');
@@ -35,27 +45,33 @@ module.exports = Marionette.ItemView.extend({
 	},
 
 	setGridder: function() {
-		new Gridder({
-			element: this.$('#gridderCandidatos'),
-			collection: this.collection,
-			cols: {
-				'nome'                : 'NOME',
-				'cpf'                 : 'CPF',
-				'quantidadeCriterios' : 'CRITÉRIOS ATENDIDOS',
-				'contemplado'         : 'CONTEMPLADO'
-			},
-			cssClasses: ['table-condensed table-hover table-fixed table-candidatos']
-		}).changeValues({
-			'false' : '<strong class="text-danger">NÃO</strong>',
-			'true'  : '<strong class="text-success">SIM</strong>'
-		});
+		var partial = Handlebars.partials['sorteios/_gridderCandidatos.tpl']({candidatos: this.collection.toJSON()});
+		this.$('#gridderCandidatos').html( partial );
 	},
 
 	setPaginator: function() {
-		var paginator = new Paginator({
-			el: this.$('#paginatorCandidatos'),
-			collection: this.collection
-		});
+		if(this.collection.length > 0) {
+			var paginator = new Paginator({
+				el: this.$('#paginatorCandidatos'),
+				collection: this.collection
+			});
+		} else {
+			this.$('#paginatorCandidatos').parents('.row').addClass('hide');
+		}
+	},
+
+	setSearcher: function() {
+		if(this.collection.length > 0) {
+			return new Searcher({
+				el: this.$('#searcherCandidatos'),
+				collection: this.collection,
+				searchAttrs: [
+					'nome:NOME',
+					'cpf:CPF'
+				],
+				live: true
+			});
+		}
 	},
 
 	enviarArquivo: function(ev) {
@@ -68,29 +84,41 @@ module.exports = Marionette.ItemView.extend({
 
 		Multimodal.confirm('Confirma o envio do arquivo?', function(resposta) {
 			if(resposta) {
-				that.$('.btn-enviar-arquivo').html('Enviando...');
 				$.ajax({
 					url: Config.BASE_URL + '/api/sorteio/' + that.model.get('id') + '/importarCandidatos',
-					type: 'POST',
+					method: 'POST',
 					data: formData,
-					async: false,
 					cache: false,
-					dataType: 'json',
 					processData: false,
 					contentType: false,
-					success: function(res) {
-						if(res.status) {
-							Multimodal.notify('Importação realizada com sucesso!', {type: 'success'});
-							that.collection.callFetch();
-							Events.trigger('reload_collection_listas');
-						} else {
-							Multimodal.notify(res.message, {type: 'danger'});
+					beforeSend: function(xhr) {
+						window.onbeforeunload = function (event) {
+							return 'Fechar a janela irá cancelar a importação.';
+						};
+						that.showProgressBar('Importação em andamento! Por favor aguarde.');
+					},
+					xhrFields: {
+						onprogress: function(ev) {
+							that.progressView.update(ev.loaded);
 						}
-						that.$('#arquivo').val('');
-						that.$('.btn-enviar-arquivo').html('Enviar Arquivo').attr('disabled', true);
 					}
+				}).done(function() {
+					that.progressView.destroy();
+
+					Multimodal.notify('Importação realizada com sucesso!', {type: 'success'});
+					Events.trigger('reload_collection_listas');
+					Events.trigger('reload_collection_candidatos');
+					window.onbeforeunload = null;
+				}).error(function(err) {
+					Multimodal.notify('Ocorreu um erro na importação dos candidatos!', {type: 'danger'});
 				});
 			}
 		});
+	},
+
+	showProgressBar: function(message) {
+		this.progressView = new ProgressBarView({message: message});
+
+		Multimodal.show(this.progressView, 'modalProgressCandidatos');
 	}
 });

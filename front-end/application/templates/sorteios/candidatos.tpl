@@ -12,6 +12,12 @@
 	</div>
 </div>
 
+<div class="row" style="margin-bottom:10px;">
+	<div class="col-md-offset-6 col-md-6">
+		<div id="searcherCandidatos"></div>
+	</div>
+</div>
+
 <div id="gridderCandidatos"></div>
 
 <div class="row">

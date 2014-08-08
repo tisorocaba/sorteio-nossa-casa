@@ -161,448 +161,6 @@ exports.isLogged = function() {
 (1)
 });
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],"tWZzaw":[function(require,module,exports){
-/*jshint expr:true eqnull:true */
-/**
- *
- * Backbone.DeepModel v0.10.4
- *
- * Copyright (c) 2013 Charles Davison, Pow Media Ltd
- *
- * https://github.com/powmedia/backbone-deep-model
- * Licensed under the MIT License
- */
-
-/**
- * Underscore mixins for deep objects
- *
- * Based on https://gist.github.com/echong/3861963
- */
-(function() {
-  var arrays, basicObjects, deepClone, deepExtend, deepExtendCouple, isBasicObject,
-    __slice = [].slice;
-
-  deepClone = function(obj) {
-    var func, isArr;
-    if (!_.isObject(obj) || _.isFunction(obj)) {
-      return obj;
-    }
-    if (obj instanceof Backbone.Collection || obj instanceof Backbone.Model) {
-      return obj;
-    }
-    if (_.isDate(obj)) {
-      return new Date(obj.getTime());
-    }
-    if (_.isRegExp(obj)) {
-      return new RegExp(obj.source, obj.toString().replace(/.*\//, ""));
-    }
-    isArr = _.isArray(obj || _.isArguments(obj));
-    func = function(memo, value, key) {
-      if (isArr) {
-        memo.push(deepClone(value));
-      } else {
-        memo[key] = deepClone(value);
-      }
-      return memo;
-    };
-    return _.reduce(obj, func, isArr ? [] : {});
-  };
-
-  isBasicObject = function(object) {
-    if (object == null) return false;
-    return (object.prototype === {}.prototype || object.prototype === Object.prototype) && _.isObject(object) && !_.isArray(object) && !_.isFunction(object) && !_.isDate(object) && !_.isRegExp(object) && !_.isArguments(object);
-  };
-
-  basicObjects = function(object) {
-    return _.filter(_.keys(object), function(key) {
-      return isBasicObject(object[key]);
-    });
-  };
-
-  arrays = function(object) {
-    return _.filter(_.keys(object), function(key) {
-      return _.isArray(object[key]);
-    });
-  };
-
-  deepExtendCouple = function(destination, source, maxDepth) {
-    var combine, recurse, sharedArrayKey, sharedArrayKeys, sharedObjectKey, sharedObjectKeys, _i, _j, _len, _len1;
-    if (maxDepth == null) {
-      maxDepth = 20;
-    }
-    if (maxDepth <= 0) {
-      console.warn('_.deepExtend(): Maximum depth of recursion hit.');
-      return _.extend(destination, source);
-    }
-    sharedObjectKeys = _.intersection(basicObjects(destination), basicObjects(source));
-    recurse = function(key) {
-      return source[key] = deepExtendCouple(destination[key], source[key], maxDepth - 1);
-    };
-    for (_i = 0, _len = sharedObjectKeys.length; _i < _len; _i++) {
-      sharedObjectKey = sharedObjectKeys[_i];
-      recurse(sharedObjectKey);
-    }
-    sharedArrayKeys = _.intersection(arrays(destination), arrays(source));
-    combine = function(key) {
-      return source[key] = _.union(destination[key], source[key]);
-    };
-    for (_j = 0, _len1 = sharedArrayKeys.length; _j < _len1; _j++) {
-      sharedArrayKey = sharedArrayKeys[_j];
-      combine(sharedArrayKey);
-    }
-    return _.extend(destination, source);
-  };
-
-  deepExtend = function() {
-    var finalObj, maxDepth, objects, _i;
-    objects = 2 <= arguments.length ? __slice.call(arguments, 0, _i = arguments.length - 1) : (_i = 0, []), maxDepth = arguments[_i++];
-    if (!_.isNumber(maxDepth)) {
-      objects.push(maxDepth);
-      maxDepth = 20;
-    }
-    if (objects.length <= 1) {
-      return objects[0];
-    }
-    if (maxDepth <= 0) {
-      return _.extend.apply(this, objects);
-    }
-    finalObj = objects.shift();
-    while (objects.length > 0) {
-      finalObj = deepExtendCouple(finalObj, deepClone(objects.shift()), maxDepth);
-    }
-    return finalObj;
-  };
-
-  _.mixin({
-    deepClone: deepClone,
-    isBasicObject: isBasicObject,
-    basicObjects: basicObjects,
-    arrays: arrays,
-    deepExtend: deepExtend
-  });
-
-}).call(this);
-
-/**
- * Main source
- */
-
-;(function(factory) {
-    if (typeof define === 'function' && define.amd) {
-        // AMD
-        define(['underscore', 'backbone'], factory);
-    } else {
-        // globals
-        factory(_, Backbone);
-    }
-}(function(_, Backbone) {
-    
-    /**
-     * Takes a nested object and returns a shallow object keyed with the path names
-     * e.g. { "level1.level2": "value" }
-     *
-     * @param  {Object}      Nested object e.g. { level1: { level2: 'value' } }
-     * @return {Object}      Shallow object with path names e.g. { 'level1.level2': 'value' }
-     */
-    function objToPaths(obj) {
-        var ret = {},
-            separator = DeepModel.keyPathSeparator;
-
-        for (var key in obj) {
-            var val = obj[key];
-
-            if (val && val.constructor === Object && !_.isEmpty(val)) {
-                //Recursion for embedded objects
-                var obj2 = objToPaths(val);
-
-                for (var key2 in obj2) {
-                    var val2 = obj2[key2];
-
-                    ret[key + separator + key2] = val2;
-                }
-            } else {
-                ret[key] = val;
-            }
-        }
-
-        return ret;
-    }
-
-    /**
-     * @param {Object}  Object to fetch attribute from
-     * @param {String}  Object path e.g. 'user.name'
-     * @return {Mixed}
-     */
-    function getNested(obj, path, return_exists) {
-        var separator = DeepModel.keyPathSeparator;
-
-        var fields = path.split(separator);
-        var result = obj;
-        return_exists || (return_exists === false);
-        for (var i = 0, n = fields.length; i < n; i++) {
-            if (return_exists && !_.has(result, fields[i])) {
-                return false;
-            }
-            result = result[fields[i]];
-
-            if (result == null && i < n - 1) {
-                result = {};
-            }
-            
-            if (typeof result === 'undefined') {
-                if (return_exists)
-                {
-                    return true;
-                }
-                return result;
-            }
-        }
-        if (return_exists)
-        {
-            return true;
-        }
-        return result;
-    }
-
-    /**
-     * @param {Object} obj                Object to fetch attribute from
-     * @param {String} path               Object path e.g. 'user.name'
-     * @param {Object} [options]          Options
-     * @param {Boolean} [options.unset]   Whether to delete the value
-     * @param {Mixed}                     Value to set
-     */
-    function setNested(obj, path, val, options) {
-        options = options || {};
-
-        var separator = DeepModel.keyPathSeparator;
-
-        var fields = path.split(separator);
-        var result = obj;
-        for (var i = 0, n = fields.length; i < n && result !== undefined ; i++) {
-            var field = fields[i];
-
-            //If the last in the path, set the value
-            if (i === n - 1) {
-                options.unset ? delete result[field] : result[field] = val;
-            } else {
-                //Create the child object if it doesn't exist, or isn't an object
-                if (typeof result[field] === 'undefined' || ! _.isObject(result[field])) {
-                    result[field] = {};
-                }
-
-                //Move onto the next part of the path
-                result = result[field];
-            }
-        }
-    }
-
-    function deleteNested(obj, path) {
-      setNested(obj, path, null, { unset: true });
-    }
-
-    var DeepModel = Backbone.Model.extend({
-
-        // Override constructor
-        // Support having nested defaults by using _.deepExtend instead of _.extend
-        constructor: function(attributes, options) {
-            var defaults;
-            var attrs = attributes || {};
-            this.cid = _.uniqueId('c');
-            this.attributes = {};
-            if (options && options.collection) this.collection = options.collection;
-            if (options && options.parse) attrs = this.parse(attrs, options) || {};
-            if (defaults = _.result(this, 'defaults')) {
-                //<custom code>
-                // Replaced the call to _.defaults with _.deepExtend.
-                attrs = _.deepExtend({}, defaults, attrs);
-                //</custom code>
-            }
-            this.set(attrs, options);
-            this.changed = {};
-            this.initialize.apply(this, arguments);
-        },
-
-        // Return a copy of the model's `attributes` object.
-        toJSON: function(options) {
-          return _.deepClone(this.attributes);
-        },
-
-        // Override get
-        // Supports nested attributes via the syntax 'obj.attr' e.g. 'author.user.name'
-        get: function(attr) {
-            return getNested(this.attributes, attr);
-        },
-
-        // Override set
-        // Supports nested attributes via the syntax 'obj.attr' e.g. 'author.user.name'
-        set: function(key, val, options) {
-            var attr, attrs, unset, changes, silent, changing, prev, current;
-            if (key == null) return this;
-            
-            // Handle both `"key", value` and `{key: value}` -style arguments.
-            if (typeof key === 'object') {
-              attrs = key;
-              options = val || {};
-            } else {
-              (attrs = {})[key] = val;
-            }
-
-            options || (options = {});
-            
-            // Run validation.
-            if (!this._validate(attrs, options)) return false;
-
-            // Extract attributes and options.
-            unset           = options.unset;
-            silent          = options.silent;
-            changes         = [];
-            changing        = this._changing;
-            this._changing  = true;
-
-            if (!changing) {
-              this._previousAttributes = _.deepClone(this.attributes); //<custom>: Replaced _.clone with _.deepClone
-              this.changed = {};
-            }
-            current = this.attributes, prev = this._previousAttributes;
-
-            // Check for changes of `id`.
-            if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];
-
-            //<custom code>
-            attrs = objToPaths(attrs);
-            //</custom code>
-
-            // For each `set` attribute, update or delete the current value.
-            for (attr in attrs) {
-              val = attrs[attr];
-
-              //<custom code>: Using getNested, setNested and deleteNested
-              if (!_.isEqual(getNested(current, attr), val)) changes.push(attr);
-              if (!_.isEqual(getNested(prev, attr), val)) {
-                setNested(this.changed, attr, val);
-              } else {
-                deleteNested(this.changed, attr);
-              }
-              unset ? deleteNested(current, attr) : setNested(current, attr, val);
-              //</custom code>
-            }
-
-            // Trigger all relevant attribute changes.
-            if (!silent) {
-              if (changes.length) this._pending = true;
-
-              //<custom code>
-              var separator = DeepModel.keyPathSeparator;
-
-              for (var i = 0, l = changes.length; i < l; i++) {
-                var key = changes[i];
-
-                this.trigger('change:' + key, this, getNested(current, key), options);
-
-                var fields = key.split(separator);
-
-                //Trigger change events for parent keys with wildcard (*) notation
-                for(var n = fields.length - 1; n > 0; n--) {
-                  var parentKey = _.first(fields, n).join(separator),
-                      wildcardKey = parentKey + separator + '*';
-
-                  this.trigger('change:' + wildcardKey, this, getNested(current, parentKey), options);
-                }
-                //</custom code>
-              }
-            }
-
-            if (changing) return this;
-            if (!silent) {
-              while (this._pending) {
-                this._pending = false;
-                this.trigger('change', this, options);
-              }
-            }
-            this._pending = false;
-            this._changing = false;
-            return this;
-        },
-
-        // Clear all attributes on the model, firing `"change"` unless you choose
-        // to silence it.
-        clear: function(options) {
-          var attrs = {};
-          var shallowAttributes = objToPaths(this.attributes);
-          for (var key in shallowAttributes) attrs[key] = void 0;
-          return this.set(attrs, _.extend({}, options, {unset: true}));
-        },
-
-        // Determine if the model has changed since the last `"change"` event.
-        // If you specify an attribute name, determine if that attribute has changed.
-        hasChanged: function(attr) {
-          if (attr == null) return !_.isEmpty(this.changed);
-          return getNested(this.changed, attr) !== undefined;
-        },
-
-        // Return an object containing all the attributes that have changed, or
-        // false if there are no changed attributes. Useful for determining what
-        // parts of a view need to be updated and/or what attributes need to be
-        // persisted to the server. Unset attributes will be set to undefined.
-        // You can also pass an attributes object to diff against the model,
-        // determining if there *would be* a change.
-        changedAttributes: function(diff) {
-          //<custom code>: objToPaths
-          if (!diff) return this.hasChanged() ? objToPaths(this.changed) : false;
-          //</custom code>
-
-          var old = this._changing ? this._previousAttributes : this.attributes;
-          
-          //<custom code>
-          diff = objToPaths(diff);
-          old = objToPaths(old);
-          //</custom code>
-
-          var val, changed = false;
-          for (var attr in diff) {
-            if (_.isEqual(old[attr], (val = diff[attr]))) continue;
-            (changed || (changed = {}))[attr] = val;
-          }
-          return changed;
-        },
-
-        // Get the previous value of an attribute, recorded at the time the last
-        // `"change"` event was fired.
-        previous: function(attr) {
-          if (attr == null || !this._previousAttributes) return null;
-
-          //<custom code>
-          return getNested(this._previousAttributes, attr);
-          //</custom code>
-        },
-
-        // Get all of the attributes of the model at the time of the previous
-        // `"change"` event.
-        previousAttributes: function() {
-          //<custom code>
-          return _.deepClone(this._previousAttributes);
-          //</custom code>
-        }
-    });
-
-
-    //Config; override in your app to customise
-    DeepModel.keyPathSeparator = '.';
-
-
-    //Exports
-    Backbone.DeepModel = DeepModel;
-
-    //For use in NodeJS
-    if (typeof module != 'undefined') module.exports = DeepModel;
-    
-    return Backbone;
-
-}));
-
-
-},{}],"backbone-deep-model":[function(require,module,exports){
-module.exports=require('tWZzaw');
 },{}],"backbone.babysitter":[function(require,module,exports){
 module.exports=require('CE9MhP');
 },{}],"CE9MhP":[function(require,module,exports){
@@ -4929,277 +4487,7 @@ if (typeof jQuery === 'undefined') { throw new Error('Bootstrap\'s JavaScript re
 
 },{}],"bootstrap":[function(require,module,exports){
 module.exports=require('EtaNWs');
-},{}],"gridder":[function(require,module,exports){
-module.exports=require('Fj1BuF');
-},{}],"Fj1BuF":[function(require,module,exports){
-
-(function(root, factory) {
-  if (typeof define === 'function' && define.amd) {
-    define(["jquery","backbone","underscore","marionette"], factory);
-  } else if (typeof exports === 'object') {
-    module.exports = factory(require('jquery'), require('backbone'), require('underscore'), require('marionette'));
-  } else {
-    root.Gridder = factory(root.jQuery, root.Backbone, root._, root.Backbone.Marionette);
-  }
-}(this, function($, Backbone, _, Marionette) {
-
-/* Para pegar atributos aninhados do Backbone Model */
-var getAttrs = function(model, path) {
-	var attrs = path.split('.'),
-		match;
-
-	var _walker = function(obj) {
-		if(_.isObject(obj)) {
-			_(obj).each(function(value, key) {
-				if( _.last(attrs) === key ) {
-					match = value;
-				} else {
-					_walker(obj[key]);
-				}
-			});
-		}
-	};
-
-	if(_.isObject(model.attributes[_.first(attrs)])) {
-		_walker(model.attributes[_.first(attrs)]);
-	} else {
-		match = model.attributes[_.first(attrs)];
-	}
-
-	return match;
-};
-
-var template = [
-	'	<table id="{{gridderId}}" class="table table-bordered">',
-	'		<thead></thead>',
-	'		<tbody></tbody>',
-	'	</table>'
-].join('');
-
-var Gridder = Marionette.ItemView.extend({
-
-	initialize: function(options) {
-
-		this.gridderId     = 'gridder' + new Date().getTime();
-		this.template      = function() { return template.replace('{{gridderId}}', this.gridderId); }.bind(this);
-		this.calledMethods = [];
-		this.$el           = $(options.element);
-		this.colsKeys      = _.keys(options.cols);
-		this.colsValues    = _.values(options.cols);
-		this.cssClasses    = options.cssClasses ? options.cssClasses.join(' ') : [];
-		this.emptyMessage  = options.emptyMessage ? emptyMessage : 'Sem registros para exibição!';
-
-		this.listenTo(this.collection, 'remove destroy', this.removeRow);
-
-		this.listenTo(this.collection, 'reset sync', function(collection, options) {
-			this.renderBody();
-			this.callMethods();
-		});
-
-		this.listenTo(this.collection, 'add', function(model) {
-			this.renderRow(model);
-			this.callMethods();
-		});
-
-		this.render();
-
-		return this;
-	},
-
-	callMethods: function() {
-		if(this.collection.length > 0) {
-			_.each(this.calledMethods, function(method) {
-				method.fn.call(this, method.options);
-			}, this);
-		}
-	},
-
-	onRender: function() {
-		this.renderHeader();
-		this.renderBody();
-		if(this.cssClasses) {
-			this.addCSSClasses();
-		}
-		return this;
-	},
-
-	renderHeader: function() {
-		var template = [
-			'<tr>',
-			'	<th>' + this.colsValues.join('</th><th>') + '</th>',
-			'</tr>'
-		].join('');
-
-		this.$('#' + this.gridderId + ' > thead').html(template);
-	},
-
-	renderBody: function() {
-		var colspan = this.$('#' + this.gridderId + ' > thead > tr > th').length;
-
-		this.$('#' + this.gridderId + ' > tbody').empty();
-
-		if(this.collection.length > 0) {
-			this.collection.each(this.renderRow, this);
-		} else {
-			var emptyMessage = [
-				'<tr class="warning">',
-				'	<td class="text-center" colspan="' + colspan + '">',
-				'		<strong class="text-danger">' + this.emptyMessage + '</strong>',
-				'	</td>',
-				'</tr>'
-			].join('');
-
-			this.$('#' + this.gridderId + ' > tbody').html(emptyMessage);
-		}
-	},
-
-	renderRow: function(model) {
-		var cols = [],
-			col,
-			cssClass,
-			template = [],
-			attrs = _.map(this.colsKeys, function(key) {
-				return getAttrs(model, key) !== undefined ? getAttrs(model, key) : '';
-			});
-
-		_.each(attrs, function(attr, key) {
-			cssClass = this.colsKeys[key].replace(/\./g, '-');
-			col = '<td class="col-{{class}}">' + attr + '</td>';
-			cols.push(col.replace('{{class}}', cssClass));
-		}, this);
-
-		template = [
-			'<tr id="{{id}}">',
-				cols.join(''),
-			'</tr>'
-		].join('').replace('{{id}}', model.get('id'));
-
-		if(this.collection.length <= 1) {
-			this.$('#' + this.gridderId + ' > tbody').empty();
-		}
-
-		this.$('#' + this.gridderId + ' > tbody').append(template);
-	},
-
-	removeRow: function(model) {
-		this.$('#' + this.gridderId + ' > tbody').find('tr#' + model.get('id')).remove();
-	},
-
-	addCSSClasses: function() {
-		this.$('#' + this.gridderId).addClass(this.cssClasses);
-	},
-
-	changeValues: function(options) {
-		var cols = this.$('#' + this.gridderId + ' > tbody > tr > td');
-
-		_.each(options, function(value, key) {
-			_.each(cols, function(col) {
-				if($(col).html() == key) {
-					$(col).html(value);
-				}
-			});
-		});
-
-		this.calledMethods.push({
-			fn: this.changeValues,
-			options: options
-		});
-
-		return this;
-	},
-
-	getCols: function(callback) {
-		_.each(this.$('#' + this.gridderId + ' > tbody > tr > td'), function(col) {
-			callback(col, this.collection.get($(col).parents('tr').attr('id')));
-		}, this);
-
-		this.calledMethods.push({
-			fn: this.getCols,
-			options: callback
-		});
-
-		return this;
-	},
-
-	getRows: function(callback) {
-		_.each(this.$('#' + this.gridderId + ' > tbody > tr'), function(row) {
-			callback(row, this.collection.get($(row).attr('id')));
-		}, this);
-
-		this.calledMethods.push({
-			fn: this.getRows,
-			options: callback
-		});
-
-		return this;
-	},
-
-	addCols: function(options) {
-		var content = null,
-				that = this;
-
-		this.$('#' + this.gridderId + ' .gridder-col-inserted').remove();
-
-		if(this.collection.length > 0) {
-			_.each(options, function(option) {
-
-				/* hack para atualizar o DOM antes de inserir novos elementos */
-				// setTimeout(function() {
-					var position = option.position,
-						header = option.header ? option.header : '';
-
-					if(position && position === 'first') {
-						position = 0;
-					} else if(position && position === 'last') {
-						position = that.$('#' + that.gridderId + ' > thead > tr > th').length;
-					} else if(position > that.$('#' + that.gridderId + ' > thead > tr > th').length) {
-						position = that.$('#' + that.gridderId + ' > thead > tr > th').length;
-					} else {
-						position = position;
-					}
-
-					try {
-						if(position === 0) {
-							that.$('#' + that.gridderId + ' > thead > tr > th:first-child').before('<th class="gridder-col-inserted">' + header + '</th>');
-						} else {
-							that.$('#' + that.gridderId + ' > thead > tr > th:nth-child(' + position + ')').after('<th class="gridder-col-inserted">' + header + '</th>');
-						}
-					} catch(err) {
-						position = that.$('#' + that.gridderId + ' > thead > tr > th').length;
-						that.$('#' + that.gridderId + ' > thead > tr > th:nth-child(' + position + ')').after('<th class="gridder-col-inserted">' + header + '</th>');
-					}
-
-					_.each(that.$('#' + that.gridderId + ' > tbody > tr'), function(row) {
-						var model = that.collection.get($(row).attr('id'));
-						// model = new DeepModel(model.attributes);
-
-						content = option.content.replace(/\{\{(\S*)\}\}/gi, function(test, match) {
-							return getAttrs(model, match);
-							// return model.get(match);
-						});
-
-						if(position === 0) {
-							$(row).find('td:first-child').before('<td class="gridder-col-inserted">' + content + '</td>');
-						} else {
-							$(row).find('td:nth-child(' + position + ')').after('<td class="gridder-col-inserted">' + content + '</td>');
-						}
-					});
-				// }, option.position);
-			});
-		}
-
-		this.calledMethods.push({
-			fn: this.addCols,
-			options: options
-		});
-
-		return this;
-	}
-});
-return Gridder;
-
-}));
-},{"backbone":"zk3e1a","jquery":"F1S2O9","marionette":"1Kk0Oh","underscore":"dMAWyx"}],"F1S2O9":[function(require,module,exports){
+},{}],"F1S2O9":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v1.11.0
  * http://jquery.com/
@@ -22121,6 +21409,165 @@ exports.pagedCollection = Backbone.Collection.extend({
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],"paginator":[function(require,module,exports){
 module.exports=require('x4Tcia');
+},{}],"xaCQuG":[function(require,module,exports){
+(function (global){
+/**
+ * Baltazzar Searcher
+ * Versão: 0.2.2
+ * Módulo para busca de registros.
+ * Autor: BaltazZar Team
+ */
+
+!function(e){if("object"==typeof exports)module.exports=e();else if("function"==typeof define&&define.amd)define(e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),(f.baltazzar||(f.baltazzar={})).searcher=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
+var $ = _dereq_('jquery'),
+	_ = _dereq_('underscore'),
+	Backbone = _dereq_('backbone');
+
+Backbone.$ = $;
+
+// Define o template do Searcher
+var searcherTemplate = [
+	'<div class="row">',
+	'	<div class="col-md-4" style="padding-right:0;">',
+	'		<select class="form-control input-sm search-attrs"></select>',
+	'	</div>',
+	'	<div class="col-md-8">',
+	'		<form class="form-search" action="">',
+	'			<div class="input-group input-group-sm">',
+	'				<input type="text" class="form-control search-param" placeholder="Digite sua busca">',
+	'				<span class="input-group-btn">',
+	'					<button type="submit" class="btn btn-primary btn-search"><i class="glyphicon glyphicon-search"></i></button>',
+	'				</span>',
+	'			</div>',
+	'		</form>',
+	'	</div>',
+	'</div>'
+].join('');
+
+// Retorna uma Backbone View
+module.exports = Backbone.View.extend({
+	template: searcherTemplate,
+
+	// Define os eventos dos elementos do Searcher.
+	events: {
+		'submit .form-search': 'doSearch',
+		'keyup .search-param'  : _.debounce(function(ev) {
+			if(ev.currentTarget.value !== '' && this.options.live) {
+				this.doSearch(ev);
+			} else {
+				this.resetCollection(ev);
+			}
+		}, 700),
+		'change .search-attrs' : function() { this.$('.search-param').focus(); }
+	},
+
+	// Chama a renderização da view e prepara a collection para permitir buscas.
+	initialize: function(options) {
+		this.options = options;
+		this.collection = this.options.collection;
+		this.prepareCollection();
+		this.render();
+		this.setSearcherAttrs();
+	},
+
+	// Renderiza a view.
+	render: function() {
+		this.$el.html(this.template);
+	},
+
+	// Prepara a collection para permitir buscas.
+	prepareCollection: function() {
+		var that = this;
+
+		// Cria o atributo queryObj na collection caso não exista.
+		if(!this.collection.queryObj) {
+			this.collection.queryObj = {};
+		}
+
+		// Cria a função callFetch na collection caso não exista.
+		if(!this.collection.callFetch) {
+			this.collection.callFetch = function(data) {
+
+				if(data && data.itens_per_page) {
+					that.collection.queryObj = _.extend({page: 1}, data);
+				}
+
+				that.collection.queryObj = _.extend(that.collection.queryObj, data);
+
+				return that.collection.fetch({
+					data: that.collection.queryObj
+				});
+			};
+		}
+	},
+
+	// Define os atributos de busca.
+	setSearcherAttrs: function() {
+		var cmbSearchOptions = this.$('.search-attrs');
+
+		_.each(this.options.searchAttrs, function(sa) {
+			sa = sa.split(':');
+			cmbSearchOptions.append('<option value="' + sa[0] + '">Buscar por ' + sa[1] + '</option>');
+		});
+	},
+
+	// Define o texto a ser exibido no botão enquanto a busca é efetuada.
+	setSearchingText: function(reset) {
+		var searchingText = this.options.searchingText ? this.options.searchingText : 'Buscando...';
+
+		if(reset) {
+			this.$('.btn-search').html(this.prevState);
+		} else {
+			this.prevState = this.$('.btn-search').html();
+			this.$('.btn-search').html(searchingText);
+		}
+	},
+
+	// Realiza a busca de acordo com os parâmetros escolhidos.
+	doSearch: function(ev) {
+		ev.preventDefault();
+
+		var searchAttr = this.$('.search-attrs').val(),
+			searchParam = this.$('.search-param').val(),
+			query = {filter_fields: searchAttr + '%' + searchParam},
+			that = this;
+
+		if(searchParam !== '') {
+			this.setSearchingText();
+			that.collection.callFetch(query).success(function() {
+				setTimeout(function() {
+					that.setSearchingText('reset');
+				}, 500);
+			});
+		}
+	},
+
+	// Retorna a collection a seu estado inicial quando os parâmetros de busca são limpados.
+	resetCollection: function(ev) {
+		ev.preventDefault();
+
+		var queryObj = {
+			itens_per_page: this.collection.itens_per_page ? this.collection.itens_per_page : 10,
+			page: 1
+		},
+		that = this;
+
+		if(ev.currentTarget.value === '') {
+			this.setSearchingText();
+			this.collection.callFetch(queryObj).success(function() {
+				setTimeout(function() {
+					that.setSearchingText('reset');
+				}, 500);
+			});
+		}
+	}
+});
+},{}]},{},[1])
+(1)
+});;
+}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],"searcher":[function(require,module,exports){
+module.exports=require('xaCQuG');
 },{}],"dMAWyx":[function(require,module,exports){
 //     Underscore.js 1.6.0
 //     http://underscorejs.org
@@ -23501,9 +22948,9 @@ var Handlebars = create();
 Handlebars.create = create;
 
 exports["default"] = Handlebars;
-},{"./handlebars/base":29,"./handlebars/exception":30,"./handlebars/runtime":31,"./handlebars/safe-string":32,"./handlebars/utils":33}],"handlebars.runtime":[function(require,module,exports){
+},{"./handlebars/base":27,"./handlebars/exception":28,"./handlebars/runtime":29,"./handlebars/safe-string":30,"./handlebars/utils":31}],"handlebars.runtime":[function(require,module,exports){
 module.exports=require('n3p091');
-},{}],29:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 "use strict";
 var Utils = require("./utils");
 var Exception = require("./exception")["default"];
@@ -23684,7 +23131,7 @@ exports.log = log;var createFrame = function(object) {
   return obj;
 };
 exports.createFrame = createFrame;
-},{"./exception":30,"./utils":33}],30:[function(require,module,exports){
+},{"./exception":28,"./utils":31}],28:[function(require,module,exports){
 "use strict";
 
 var errorProps = ['description', 'fileName', 'lineNumber', 'message', 'name', 'number', 'stack'];
@@ -23713,7 +23160,7 @@ function Exception(message, node) {
 Exception.prototype = new Error();
 
 exports["default"] = Exception;
-},{}],31:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 "use strict";
 var Utils = require("./utils");
 var Exception = require("./exception")["default"];
@@ -23851,7 +23298,7 @@ exports.program = program;function invokePartial(partial, name, context, helpers
 exports.invokePartial = invokePartial;function noop() { return ""; }
 
 exports.noop = noop;
-},{"./base":29,"./exception":30,"./utils":33}],32:[function(require,module,exports){
+},{"./base":27,"./exception":28,"./utils":31}],30:[function(require,module,exports){
 "use strict";
 // Build out our basic SafeString type
 function SafeString(string) {
@@ -23863,7 +23310,7 @@ SafeString.prototype.toString = function() {
 };
 
 exports["default"] = SafeString;
-},{}],33:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 "use strict";
 /*jshint -W004 */
 var SafeString = require("./safe-string")["default"];
@@ -23940,4 +23387,4 @@ exports.escapeExpression = escapeExpression;function isEmpty(value) {
 }
 
 exports.isEmpty = isEmpty;
-},{"./safe-string":32}]},{},[])
+},{"./safe-string":30}]},{},[])

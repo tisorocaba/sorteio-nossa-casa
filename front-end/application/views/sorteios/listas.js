@@ -1,9 +1,10 @@
 var Marionette = require('marionette'),
+	Handlebars = require('handlebars.runtime')['default'],
 	_ = require('underscore'),
 	Listas = require('collections/listas'),
 	ListaView = require('views/sorteios/lista'),
+	ProgressBarView = require('views/sorteios/progressBar'),
 	Events = require('events'),
-	Gridder = require('gridder'),
 	Multimodal = require('multimodal'),
 	Config = require('config');
 
@@ -14,6 +15,7 @@ module.exports = Marionette.ItemView.extend({
 		'click .btn-sortear-proxima-lista' : 'sortearProximaLista',
 		'click .btn-alterar-quantidade'    : 'alterarQuantidadeCasas',
 		'click .table-listas .clickable'   : 'showLista',
+		'keyup .txt-semente'               : 'storeSementes'
 	},
 
 	initialize: function() {
@@ -23,49 +25,20 @@ module.exports = Marionette.ItemView.extend({
 
 		Events.on('reload_collection_listas', function() {
 			that.collection = new Listas(null, {idSorteio: that.model.get('id')});
-			that.setGridder();
-			that.toggleAlteracaoQuantidadeCasas();
-			that.toggleBtnSorteio();
+			that.render();
 		});
 	},
 
-	onShow: function() {
+	onRender: function() {
 		this.setGridder();
 		this.toggleBtnSorteio();
 		this.toggleAlteracaoQuantidadeCasas();
+		this.setSementeFields();
 	},
 
 	setGridder: function() {
-		new Gridder({
-			element: this.$('#gridderListas'),
-			collection: this.collection,
-			cols: {
-				'nome'         : 'NOME',
-				'quantidade'   : 'TITULARES / RESERVA',
-				'ordemSorteio' : 'ORDEM DE SORTEIO',
-				'sorteada'     : 'SORTEADA?'
-			},
-			cssClasses: ['table-condensed table-hover table-fixed table-listas']
-		}).changeValues({
-			'false' : '<strong class="text-danger">NÃO</strong>',
-			'true'  : '<strong class="text-success">SIM</strong>'
-		}).getCols(function(col, model) {
-			if($(col).hasClass('col-quantidade')) {
-				var field = '<input type="text" class="form-control input-xs txt-quantidade" data-id="{{id}}" value="{{quantidade}}">';
-				field = field.replace('{{id}}', model.get('id')).replace('{{quantidade}}', model.get('quantidade'));
-				$(col).html(field);
-			} else {
-				if(model) {
-					$(col).addClass('clickable');
-				}
-			}
-		}).getRows(function(row, model) {
-			try {
-				if(model.get('sorteada')) {
-					$(row).addClass('success text-success').find('td:last').html('<strong class="text-success">SIM</strong>');
-				}
-			} catch(err) {}
-		});
+		var partial = Handlebars.partials['sorteios/_gridderListas.tpl']({listas: this.collection.toJSON()});
+		this.$('#gridderListas').html( partial );
 	},
 
 	toggleBtnSorteio: function() {
@@ -129,20 +102,27 @@ module.exports = Marionette.ItemView.extend({
 		ev.preventDefault();
 
 		var proximaLista = _.first( this.collection.where({sorteada: false}) ),
-			msg = 'Sortear lista <strong class="text-danger">' + proximaLista.get('nome') + '</strong>?',
+			semente = this.$('.txt-semente[data-id=' + proximaLista.get('id') + ']').val(),
+			msg = '',
 			that = this;
+
+		if(semente) {
+			msg = 'Sortear lista <strong class="text-danger">' + proximaLista.get('nome') + '</strong> utilizando a semente <strong class="text-danger">' + semente + '</strong> ?';
+		} else {
+			msg = 'Sortear lista <strong class="text-danger">' + proximaLista.get('nome') +  '?';
+		}
 
 		Multimodal.confirm(msg, function(resposta) {
 			if(resposta) {
 				$.ajax({
-					url: Config.BASE_URL + '/api/sorteio/' + that.model.get('id') + '/sortearProximaLista',
+					url: Config.BASE_URL + '/api/sorteio/' + that.model.get('id') + '/sortearProximaLista?semente=' + semente,
 					method: 'POST',
 					cache: false,
 					beforeSend: function(xhr) {
 						window.onbeforeunload = function (event) {
 							return 'Fechar a janela irá cancelar o sorteio.';
-						}
-						that.showProgressBar();
+						};
+						that.showProgressBar('Sorteio em andamento! Por favor aguarde.');
 					},
 					xhrFields: {
 						onprogress: function(ev) {
@@ -155,7 +135,6 @@ module.exports = Marionette.ItemView.extend({
 					Events.trigger('reload_collection_listas');
 					Events.trigger('reload_collection_sorteios');
 					Events.trigger('hide_upload_controls');
-					that.toggleBtnSorteio();
 					that.showListaSorteada(proximaLista);
 					window.onbeforeunload = null;
 				}).error(function(err) {
@@ -165,23 +144,8 @@ module.exports = Marionette.ItemView.extend({
 		});
 	},
 
-	showProgressBar: function() {
-		var ProgressView = Marionette.ItemView.extend({
-			template: 'sorteios/progress_bar.tpl',
-
-			initialize: function() {
-				this.oldModalEscape = $.fn.modal.Constructor.prototype.escape;
-				$.fn.modal.Constructor.prototype.escape = function () {};
-			},
-			onDestroy: function() {
-				$.fn.modal.Constructor.prototype.escape = this.oldModalEscape;
-			},
-			update: function(value) {
-				this.$('.progress-bar').css('width', value + '%').html(value + '%');
-			}
-		});
-
-		this.progressView = new ProgressView();
+	showProgressBar: function(message) {
+		this.progressView = new ProgressBarView({message: message});
 
 		Multimodal.show(this.progressView, 'modalProgress');
 	},
@@ -191,8 +155,23 @@ module.exports = Marionette.ItemView.extend({
 	},
 
 	showLista: function(ev) {
-		var listas = new Listas(null, {idSorteio: this.model.get('id')}),
-			lista = listas.get(this.$(ev.currentTarget).parents('tr').attr('id'));
+		this.collection = new Listas(null, {idSorteio: this.model.get('id')});
+
+		var lista = this.collection.get(this.$(ev.currentTarget).parents('tr').attr('id'));
+
 		Multimodal.show(new ListaView({model: lista}), 'modalLista');
+	},
+
+	storeSementes: function(ev) {
+		var field = this.$(ev.currentTarget);
+		sessionStorage.setItem('txt-semente-' + field.data('id'), field.val());
+	},
+
+	setSementeFields: function(ev) {
+		var that = this;
+		this.$('.txt-semente').each(function(key, field) {
+			var semente = sessionStorage.getItem('txt-semente-' + that.$(field).data('id'));
+			that.$(field).val(semente);
+		});
 	}
 });

@@ -1,4 +1,4 @@
-<div class="modal-dialog modal-medium">
+<div class="modal-dialog modal-big">
 	<div class="modal-content">
 		<div class="modal-header">
 			<button type="button" class="close" data-dismiss="modal">&times;</button>

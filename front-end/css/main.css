@@ -170,6 +170,14 @@ h1 > .label, h2 > .label, h3 > .label {
 }
 
 .table-candidatos th:nth-child(4) {
+	width: 200px;
+}
+
+.table-candidatos th:nth-child(5) {
+	width: 150px;
+}
+
+.table-candidatos th:nth-child(6) {
 	width: 100px;
 }
 
@@ -186,7 +194,7 @@ h1 > .label, h2 > .label, h3 > .label {
 	width: 130px;
 }
 
-.table-listas th:nth-child(4) {
+.table-listas th:nth-child(5) {
 	width: 90px;
 }
 

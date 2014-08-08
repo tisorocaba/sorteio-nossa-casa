@@ -1,45 +1,57 @@
 var Marionette = require('marionette'),
+	Handlebars = require('handlebars.runtime')['default'],
 	Candidatos = require('collections/candidatos'),
-	Gridder = require('gridder'),
-	Paginator = require('paginator').paginator;
+	Paginator = require('paginator').paginator,
+	Multimodal = require('multimodal'),
+	Config = require('config');
 
 module.exports = Marionette.ItemView.extend({
 	template: 'sorteios/lista.tpl',
+
+	events: {
+		'click .btn-publicar-lista' : 'publicarLista'
+	},
 
 	initialize: function() {
 		this.collection = new Candidatos(null, {idLista: this.model.get('id')});
 	},
 
-	onShow: function() {
+	onRender: function() {
+		this.listenTo(this.collection, 'request', this.setGridder);
 		this.setGridder();
 		this.setPaginator();
 	},
 
 	setGridder: function() {
-		new Gridder({
-			element: this.$('#gridderCandidatosLista'),
-			collection: this.collection,
-			cols: {
-				'nome'                  : 'NOME',
-				'cpf'                   : 'CPF',
-				'quantidadeCriterios'   : 'CRITÉRIOS ATENDIDOS',
-				'sequenciaContemplacao' : 'SEQUÊNCIA'
-			},
-			cssClasses: ['table-condensed table-hover table-fixed table-candidatos-lista']
-		}).changeValues({
-			'false' : '<strong class="text-danger">NÃO</strong>',
-			'true'  : '<strong class="text-success">SIM</strong>'
-		}).getRows(function(row, model) {
-			if(model.get('dataContemplacao')) {
-				$(row).addClass('success text-success');
-			}
-		});
+		var partial = Handlebars.partials['sorteios/_gridderCandidatosLista.tpl']({candidatos: this.collection.toJSON()});
+		this.$('#gridderCandidatosLista').html( partial );
 	},
 
 	setPaginator: function() {
 		var paginator = new Paginator({
 			el: this.$('#paginatorCandidatosLista'),
 			collection: this.collection
+		});
+	},
+
+	publicarLista: function(ev) {
+		ev.preventDefault();
+		var that = this;
+
+		$.ajax({
+			url: Config.BASE_URL + '/api/publicacao/lista/' + that.model.get('id') + '/publicar',
+			method: 'POST',
+			cache: false
+		}).done(function(res) {
+			console.log(res);
+			if(res.status) {
+				Multimodal.notify('Publicação da lista realizada com sucesso!', {type: 'success'});
+			} else {
+				Multimodal.notify('Ocorreu um erro na publicação da lista!', {type: 'danger'});
+			}
+		}).error(function(err) {
+			console.log(err);
+			Multimodal.notify('Ocorreu um erro na publicação da lista!', {type: 'danger'});
 		});
 	}
 });

@@ -21,5 +21,6 @@
 
     "CDN_URL": "http://servicos.sorocaba.sp.gov.br/cdn",
     "BASE_URL": "URL_DO_BACKEND",
-    "ENV": "TESTE"
+    "ENV": "TESTE",
+    "AUTH_ENABLED": false
 }

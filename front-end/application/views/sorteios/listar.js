@@ -1,7 +1,7 @@
 var Marionette = require('marionette'),
+	Handlebars = require('handlebars.runtime')['default'],
 	Backbone = require('backbone'),
 	Sorteios = require('collections/sorteios'),
-	Gridder = require('gridder'),
 	Multimodal = require('multimodal'),
 	Events = require('events');
 
@@ -20,34 +20,17 @@ module.exports = Marionette.ItemView.extend({
 
 		Events.on('reload_collection_sorteios', function() {
 			that.collection = new Sorteios();
-			that.setGridder();
+			that.render();
 		});
 	},
 
-	onShow: function() {
+	onRender: function() {
 		this.setGridder();
 	},
 
 	setGridder: function() {
-		var that = this;
-
-		new Gridder({
-			element: this.$('#gridderSorteios'),
-			collection: this.collection,
-			cols: {
-				'data'       : 'DATA DO SORTEIO',
-				'observacao' : 'OBSERVAÇÃO',
-				'finalizado' : 'FINALIZADO?'
-			},
-			cssClasses: ['table-condensed table-hover table-fixed table-sorteios']
-		}).changeValues({
-			'false' : '<strong class="text-danger">NÃO</strong>',
-			'true'  : '<strong class="text-success">SIM</strong>'
-		}).getCols(function(col, model) {
-			that.$(col).addClass('clickable');
-		}).addCols([{
-			'content': '<button type="button" class="btn btn-xs btn-danger btn-excluir-sorteio">Excluir</button>'
-		}]);
+		var partial = Handlebars.partials['sorteios/_gridderSorteios.tpl']({sorteios: this.collection.toJSON()});
+		this.$('#gridderSorteios').html( partial );
 	},
 
 	showSorteio: function(ev) {

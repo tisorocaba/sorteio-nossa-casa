@@ -19,7 +19,9 @@ module.exports = AuthController.extend({
 		var sorteio = new (require('models/sorteio'))({id: id});
 
 		sorteio.fetch().success(function(res) {
-			Multimodal.show(new (require('views/sorteios/sorteio'))({model: sorteio}), 'modalSorteio');
+			Multimodal.show(new (require('views/sorteios/sorteio'))({model: sorteio}), 'modalSorteio', function() {
+				location.reload();
+			});
 			Utils.goToLastRoute();
 		});
 	},
