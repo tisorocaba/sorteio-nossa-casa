@@ -66,6 +66,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Ninject.Web.Common.3.2.2.0\lib\net45-full\Ninject.Web.Common.dll</HintPath>
     </Reference>
+    <Reference Include="RazorEngine">
+      <HintPath>..\packages\RazorEngine.3.4.1\lib\net45\RazorEngine.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
@@ -130,6 +133,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="ListaContemplados.cshtml" />
     <None Include="Properties\PublishProfiles\PMS-TEWEB02.pubxml" />
   </ItemGroup>
   <ItemGroup>
@@ -137,8 +141,10 @@
     <Compile Include="App_Start\NinjectConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="ControllerHelpers\ExcelFileParser.cs" />
+    <Compile Include="Controllers\PublicacaoController.cs" />
     <Compile Include="Controllers\SorteioController.cs" />
     <Compile Include="Controllers\PermisysController.cs" />
+    <Compile Include="Data\ListaSorteioData.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>

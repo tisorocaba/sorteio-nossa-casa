@@ -1,4 +1,5 @@
 ﻿using Ninject;
+using RazorEngine;
 using Sorocaba.Commons.Data.Pagination;
 using Sorocaba.Commons.Net.Tasks;
 using Sorocaba.Commons.Web.Json;
@@ -6,10 +7,15 @@ using Sorocaba.NossaCasa.Sorteio.Business.DataObjects;
 using Sorocaba.NossaCasa.Sorteio.Business.Entities;
 using Sorocaba.NossaCasa.Sorteio.Business.Services;
 using Sorocaba.NossaCasa.Sorteio.Web.ControllerHelpers;
+using Sorocaba.NossaCasa.Sorteio.Web.Data;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Web;
 using System.Web.Http;
@@ -61,10 +67,19 @@ namespace Sorocaba.NossaCasa.Sorteio.Web.Controllers {
 
         [HttpPost]
         [Route("{idSorteio:int:min(1)}/importarCandidatos")]
-        public AjaxRequestResult ImportarCandidatosSorteio(int idSorteio) {
-            ImportacaoCandidatoService.ImportarCandidatosSorteio(idSorteio,
-                ExcelFileParser.GetExcelReader(HttpContext.Current.Request));
-            return RequestResult;
+        public HttpResponseMessage ImportarCandidatosSorteio(int idSorteio) {
+            HttpResponseMessage response = Request.CreateResponse();
+            response.Content = new PushStreamContent(
+                (outputStream, content, context) => {
+                    int rowCount;
+                    IDataReader reader = ExcelFileParser.GetExcelReader(HttpContext.Current.Request, out rowCount);
+                    IProgressTracker tracker = new StreamProgressTracker(outputStream);
+                    ImportacaoCandidatoService.ImportarCandidatosSorteio(idSorteio, reader, rowCount, tracker);
+                    outputStream.Close();
+                }
+            );
+            response.Content.Headers.ContentLength = 100;
+            return response;
         }
 
         [HttpPost]
@@ -86,7 +101,7 @@ namespace Sorocaba.NossaCasa.Sorteio.Web.Controllers {
         [HttpGet]
         [Route("{idSorteio:int:min(1)}/candidato")]
         public AjaxRequestResult ListarCandidatosSorteio(int idSorteio) {
-            RequestResult.Data = PaginationEngine.PaginatedList<CandidatoSorteio>(
+            RequestResult.Data = PaginationEngine.PaginatedList<CandidatoSorteioData>(
                 SorteioService.ListarCandidatosSorteio(idSorteio), Request);
             return RequestResult;
         }

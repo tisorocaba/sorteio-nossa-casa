@@ -58,6 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DataObjects\CandidatoListaSorteioData.cs" />
+    <Compile Include="DataObjects\CandidatoSorteioData.cs" />
     <Compile Include="Entities\CandidatoListaSorteio.cs" />
     <Compile Include="Entities\CandidatoSorteio.cs" />
     <Compile Include="Entities\ListaSorteio.cs" />

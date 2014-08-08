@@ -1,5 +1,6 @@
 ﻿using Ninject;
 using Sorocaba.Commons.Data;
+using Sorocaba.Commons.Net.Tasks;
 using Sorocaba.NossaCasa.Sorteio.Business.Entities;
 using Sorocaba.NossaCasa.Sorteio.Business.Persistence;
 using System;
@@ -12,7 +13,7 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
         [Inject] public Context Context { get; set; }
         [Inject] public SorteioService SorteioService { get; set; }
 
-        public void ImportarCandidatosSorteio(int idSorteio, IDataReader reader) {
+        public void ImportarCandidatosSorteio(int idSorteio, IDataReader reader, int rowCount, IProgressTracker tracker) {
             using (var tx = Context.Database.BeginTransaction()) {
                 try {
                     SorteioE sorteio = SorteioService.CarregarSorteio(idSorteio);
@@ -36,9 +37,15 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
                     bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(8, "IDOSO"));
                     bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(9, "AUXILIO_MORADIA"));
                     bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(10, "ID_SORTEIO"));
+
+                    tracker.Total = rowCount * 2 + 1;
+                    bulkInsert.NotifyAfter = 100;
+                    bulkInsert.SqlRowsCopied += (sender, e) => { tracker.Processed = (int) e.RowsCopied; };
                     bulkInsert.WriteToServer(wrappedReader);
+                    tracker.Processed = rowCount;
 
                     Context.Database.ExecuteSqlCommand("EXEC NOSSACASA.SP_CRIAR_LISTAS_SORTEIO @ID", new SqlParameter("@ID", idSorteio));
+                    tracker.Processed += rowCount;
 
                     tx.Commit();
                 } catch(Exception e) {
@@ -47,6 +54,8 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
                 } finally {
                     reader.Close();
                 }
+
+                tracker.Processed++;
             }
         }
     }

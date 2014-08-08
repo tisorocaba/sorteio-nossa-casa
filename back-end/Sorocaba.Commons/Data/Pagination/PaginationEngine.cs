@@ -76,11 +76,14 @@ namespace Sorocaba.Commons.Data.Pagination {
             if (page > pageCount) {
                 page = pageCount;
             }
+            if (page == 0) {
+                page = 1;
+            }
             int itemOffset = ((page - 1) * itensPerPage) + 1;
             itemOffset = (itemOffset <= 0) ?  0 : itemOffset;
 
             // Executa a consulta.
-            List<T> itemList = query.AsEnumerable().Skip((page - 1) * itensPerPage).Take(itensPerPage).ToList();
+            List<T> itemList = query.Skip((page - 1) * itensPerPage).Take(itensPerPage).ToList();
 
             // Retorna os resultados paginados.
             return new PaginatedResult<T> {

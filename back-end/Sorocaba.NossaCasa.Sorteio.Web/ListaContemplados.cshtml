@@ -1,0 +1,22 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Sorteio do NossaCasa - @Model.Nome </title>
+</head>
+<body>
+    <p class="cabecalho">
+        Ordem de Sorteio: <span class="ordem">@Model.Ordem </span> <br />
+        Nome da Lista: <span class="lista">@Model.Nome </span> <br />
+        Semente Utilizada - <span class="semente">@Model.Semente </span> <br />
+    </p>
+    <table class="resultados">
+        @foreach (var x in @Model.Contemplados) {
+            <tr class="resultado">
+                <td class="classificacao">@x.Ordem</td>
+                <td class="documento">@x.Cpf</td>
+                <td class="nome">@x.Nome</td>
+            </tr>
+        }
+    </table>
+</body>
+</html>

@@ -3,6 +3,7 @@ using Sorocaba.NossaCasa.Sorteio.Business.DataObjects;
 using Sorocaba.NossaCasa.Sorteio.Business.Entities;
 using Sorocaba.NossaCasa.Sorteio.Business.Exceptions;
 using Sorocaba.NossaCasa.Sorteio.Business.Persistence;
+using Sorocaba.NossaCasa.Sorteio.Web.Data;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -62,12 +63,26 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
         }
 
         // CandidatoSorteio
-        
-        public IQueryable<CandidatoSorteio> ListarCandidatosSorteio(int idSorteio) {
+
+        public IQueryable<CandidatoSorteioData> ListarCandidatosSorteio(int idSorteio) {
             SorteioE sorteio = CarregarSorteio(idSorteio);
-            return Context.CandidatoSorteio.Where(cs => cs.IdSorteio == sorteio.Id);
+            return
+                from candidato in Context.CandidatoSorteio
+                join cLista in Context.CandidatoListaSorteio on candidato equals cLista.CandidatoSorteio into left
+                from cLista in left.Where(l => l.SequenciaContemplacao != null).DefaultIfEmpty(null)
+                where candidato.IdSorteio == sorteio.Id
+                orderby candidato.Nome, candidato.Cpf
+                select new CandidatoSorteioData {
+                    Cpf = candidato.Cpf,
+                    Nome = candidato.Nome,
+                    QuantidadeCriterios = candidato.QuantidadeCriterios,
+                    Contemplado = candidato.Contemplado,
+                    Lista = cLista.ListaSorteio.Nome,
+                    Ordem = cLista.SequenciaContemplacao,
+                    Data = cLista.DataContemplacao
+                };
         }
-      
+
         // ListaSorteio
 
         public IQueryable<CandidatoListaSorteioData> ProjetarCandidatosListaSorteio(IQueryable<CandidatoListaSorteio> dados) {
@@ -113,6 +128,11 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
                 .OrderBy(cls => cls.SequenciaContemplacao == null)
                 .ThenBy(cls => cls.SequenciaContemplacao)
                 .ThenBy(cls => cls.CandidatoSorteio.Nome);
+        }
+
+        public IQueryable<CandidatoListaSorteio> ListarCandidatosContempladosListaSorteio(int idListaSorteio) {
+            return ListarCandidatosListaSorteio(idListaSorteio)
+                .Where(cls => cls.SequenciaContemplacao != null);
         }
 
         public void AlterarQuantidadesListasSorteio(int idSorteio, IEnumerable<ListaSorteio> listasSorteio) {
