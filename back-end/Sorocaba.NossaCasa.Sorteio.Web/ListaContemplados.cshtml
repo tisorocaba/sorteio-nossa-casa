@@ -2,6 +2,8 @@
 <html>
 <head>
     <title>Sorteio do NossaCasa - @Model.Nome </title>
+    <link rel="stylesheet" href="../../../hotsite.css">
+    <link rel="stylesheet" href="../../custom.css">
 </head>
 <body>
     <p class="cabecalho">
@@ -10,6 +12,11 @@
         Semente Utilizada - <span class="semente">@Model.Semente </span> <br />
     </p>
     <table class="resultados">
+        <tr>
+            <th>N&ordm;</th>
+            <th>CPF</th>
+            <th>Nome</th>
+        </tr>
         @foreach (var x in @Model.Contemplados) {
             <tr class="resultado">
                 <td class="classificacao">@x.Ordem</td>

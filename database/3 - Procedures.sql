@@ -72,11 +72,11 @@ BEGIN
 		CRIT_DEFICIENTE = 0 AND IDOSO = 1 AND ID_SORTEIO = @ID_SORTEIO;
 
 	--------------------------------------------------------------------------------
-	-- Lista Auxílio Moradia
+	-- Lista Indicados
 	--------------------------------------------------------------------------------
 
 	INSERT INTO NOSSACASA.LISTA_SORTEIO(ID_SORTEIO, NOME, ORDEM_SORTEIO, QUANTIDADE, SORTEADA)
-	VALUES(@ID_SORTEIO, 'Auxílio Moradia', 3, 1, 0);
+	VALUES(@ID_SORTEIO, 'Indicados', 3, 1, 0);
 
 	INSERT INTO NOSSACASA.CANDIDATO_SORTEIO_LISTA_SORTEIO(ID_LISTA_SORTEIO, ID_CANDIDATO_SORTEIO, SEQUENCIA, CLASSIFICACAO)
 	SELECT
@@ -182,11 +182,11 @@ BEGIN
 		CRIT_DEFICIENTE = 0 AND IDOSO = 1 AND ID_SORTEIO = @ID_SORTEIO;
 
 	--------------------------------------------------------------------------------
-	-- Lista Auxílio Moradia (Reserva)
+	-- Lista Indicados (Reserva)
 	--------------------------------------------------------------------------------
 
 	INSERT INTO NOSSACASA.LISTA_SORTEIO(ID_SORTEIO, NOME, ORDEM_SORTEIO, QUANTIDADE, SORTEADA)
-	VALUES(@ID_SORTEIO, 'Auxílio Moradia (Reserva)', 8, 1, 0);
+	VALUES(@ID_SORTEIO, 'Indicados (Reserva)', 8, 1, 0);
 
 	INSERT INTO NOSSACASA.CANDIDATO_SORTEIO_LISTA_SORTEIO(ID_LISTA_SORTEIO, ID_CANDIDATO_SORTEIO, SEQUENCIA, CLASSIFICACAO)
 	SELECT
