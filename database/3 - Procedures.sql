@@ -260,7 +260,7 @@ GO
 --------------------------------------------------------------------------------
 -- NOSSACASA_SORTEIO.SP_CONTEMPLAR_CANDIDATO_SORTEIO
 --------------------------------------------------------------------------------
-CREATE PROCEDURE [NOSSACASA].[SP_CONTEMPLAR_CANDIDATO_SORTEIO]
+CREATE PROCEDURE [NOSSACASA_SORTEIO].[SP_CONTEMPLAR_CANDIDATO_SORTEIO]
 	@ID_LISTA_SORTEIO INT,
 	@CLASSIFICACAO INT,
 	@INDICE INT,

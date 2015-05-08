@@ -52,7 +52,7 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
 
                     var innerTx = (SqlTransaction) tx.UnderlyingTransaction;
 
-                    SqlCommand command = new SqlCommand("NOSSACASA.SP_CONTEMPLAR_CANDIDATO_SORTEIO", innerTx.Connection, innerTx);
+                    SqlCommand command = new SqlCommand("NOSSACASA_SORTEIO.SP_CONTEMPLAR_CANDIDATO_SORTEIO", innerTx.Connection, innerTx);
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.Add(paramIdListaSorteio);
                     command.Parameters.Add(paramClassificacao);
