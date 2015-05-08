@@ -43,3 +43,7 @@ Handlebars.registerHelper('VALIDATION_MESSAGES', function() {
 
 	return new Handlebars.SafeString(template);
 });
+
+Handlebars.registerHelper('log', function(value) {
+	console.log(value);
+});

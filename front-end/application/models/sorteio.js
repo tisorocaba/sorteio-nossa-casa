@@ -17,6 +17,13 @@ module.exports = Backbone.Model.extend({
 			});
 		}
 
+		if(attrs.empreendimentos.length === 0) {
+			errors.push({
+				element: '.empreendimento:first',
+				message: 'Ao menos um empreendimento precisa ser informado'
+			});
+		}
+
 		return errors.length > 0 ? errors : null;
 	},
 

@@ -8,7 +8,7 @@
 		{{#if sorteada}}
 			<div class="row">
 				<div class="col-md-6">
-					<div class="alert alert-info" style="margin-bottom:10px;">
+					<div class="alert alert-info" style="padding:6px;margin-bottom:10px;">
 						<span class="glyphicon glyphicon-info-sign"></span>
 						<span>
 							Semente Utilizada neste Sorteio: <strong>{{sementeSorteio}}</strong>
@@ -16,8 +16,8 @@
 					</div>
 				</div>
 				<div class="col-md-6 text-right">
-					<button type="button" class="btn btn-primary btn-publicar-lista" style="margin-top:10px;">Publicar Lista de Contemplados</button>
-					<a href="{{CONFIG 'BASE_URL'}}/api/publicacao/lista/{{id}}/exportar" target="_blank" class="btn btn-success" style="margin-top:10px;">Baixar Lista de Contemplados</a>
+					<button type="button" class="btn btn-primary btn-publicar-lista" style="margin-top:0;">Publicar Lista de Contemplados</button>
+					<a href="{{CONFIG 'BASE_URL'}}/api/publicacao/lista/{{id}}/exportar" target="_blank" class="btn btn-success" style="margin-top:0;">Baixar Lista de Contemplados</a>
 				</div>
 			</div>
 		{{/if}}

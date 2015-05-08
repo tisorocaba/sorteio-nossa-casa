@@ -25,7 +25,7 @@
 		</tr>
 	{{else}}
 		<tr class="warning text-danger">
-			<td colspan="4"><strong>Sem registros para exibição!</strong></td>
+			<td colspan="6"><strong>Sem registros para exibição!</strong></td>
 		</tr>
 	{{/each}}
 	</tbody>

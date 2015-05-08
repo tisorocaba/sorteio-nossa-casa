@@ -3,6 +3,7 @@
 
 body {
 	background: #f5f5f5;
+	margin-bottom: -40px;
 }
 
 form {
@@ -39,7 +40,10 @@ h1 > .label, h2 > .label, h3 > .label {
 	margin-top: -5px;
 }
 
-.nav-tabs > li.active > a, .nav-tabs > li.active > a:hover {
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:hover,
+.nav-tabs > li.active > a:focus,
+.nav-tabs > li.active > a:active {
 	color: tomato;
 }
 
@@ -82,6 +86,7 @@ h1 > .label, h2 > .label, h3 > .label {
 /* Modal */
 .modal {
 	padding-top: 30px;
+	overflow: auto !important;
 }
 
 .modal-header, .modal-body, .modal-footer {
@@ -178,7 +183,7 @@ h1 > .label, h2 > .label, h3 > .label {
 }
 
 .table-candidatos th:nth-child(6) {
-	width: 100px;
+	width: 105px;
 }
 
 .table-candidatos td {
@@ -187,11 +192,15 @@ h1 > .label, h2 > .label, h3 > .label {
 
 /* Table Listas */
 .table-listas th:nth-child(2) {
-	width: 140px;
+	width: 150px;
 }
 
 .table-listas th:nth-child(3) {
-	width: 130px;
+	width: 140px;
+}
+
+.table-listas th:nth-child(4) {
+	width: 215px;
 }
 
 .table-listas th:nth-child(5) {
@@ -210,7 +219,7 @@ h1 > .label, h2 > .label, h3 > .label {
 }
 
 .table-candidatos-lista th:nth-child(3) {
-	width: 145px;
+	width: 150px;
 }
 
 .table-candidatos-lista td {

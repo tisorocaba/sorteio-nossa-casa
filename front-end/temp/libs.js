@@ -1,7 +1,441 @@
-require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"auth":[function(require,module,exports){
-module.exports=require('norEg6');
-},{}],"norEg6":[function(require,module,exports){
-(function (global){
+require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+"use strict";
+var Utils = require("./utils");
+var Exception = require("./exception")["default"];
+
+var VERSION = "1.3.0";
+exports.VERSION = VERSION;var COMPILER_REVISION = 4;
+exports.COMPILER_REVISION = COMPILER_REVISION;
+var REVISION_CHANGES = {
+  1: '<= 1.0.rc.2', // 1.0.rc.2 is actually rev2 but doesn't report it
+  2: '== 1.0.0-rc.3',
+  3: '== 1.0.0-rc.4',
+  4: '>= 1.0.0'
+};
+exports.REVISION_CHANGES = REVISION_CHANGES;
+var isArray = Utils.isArray,
+    isFunction = Utils.isFunction,
+    toString = Utils.toString,
+    objectType = '[object Object]';
+
+function HandlebarsEnvironment(helpers, partials) {
+  this.helpers = helpers || {};
+  this.partials = partials || {};
+
+  registerDefaultHelpers(this);
+}
+
+exports.HandlebarsEnvironment = HandlebarsEnvironment;HandlebarsEnvironment.prototype = {
+  constructor: HandlebarsEnvironment,
+
+  logger: logger,
+  log: log,
+
+  registerHelper: function(name, fn, inverse) {
+    if (toString.call(name) === objectType) {
+      if (inverse || fn) { throw new Exception('Arg not supported with multiple helpers'); }
+      Utils.extend(this.helpers, name);
+    } else {
+      if (inverse) { fn.not = inverse; }
+      this.helpers[name] = fn;
+    }
+  },
+
+  registerPartial: function(name, str) {
+    if (toString.call(name) === objectType) {
+      Utils.extend(this.partials,  name);
+    } else {
+      this.partials[name] = str;
+    }
+  }
+};
+
+function registerDefaultHelpers(instance) {
+  instance.registerHelper('helperMissing', function(arg) {
+    if(arguments.length === 2) {
+      return undefined;
+    } else {
+      throw new Exception("Missing helper: '" + arg + "'");
+    }
+  });
+
+  instance.registerHelper('blockHelperMissing', function(context, options) {
+    var inverse = options.inverse || function() {}, fn = options.fn;
+
+    if (isFunction(context)) { context = context.call(this); }
+
+    if(context === true) {
+      return fn(this);
+    } else if(context === false || context == null) {
+      return inverse(this);
+    } else if (isArray(context)) {
+      if(context.length > 0) {
+        return instance.helpers.each(context, options);
+      } else {
+        return inverse(this);
+      }
+    } else {
+      return fn(context);
+    }
+  });
+
+  instance.registerHelper('each', function(context, options) {
+    var fn = options.fn, inverse = options.inverse;
+    var i = 0, ret = "", data;
+
+    if (isFunction(context)) { context = context.call(this); }
+
+    if (options.data) {
+      data = createFrame(options.data);
+    }
+
+    if(context && typeof context === 'object') {
+      if (isArray(context)) {
+        for(var j = context.length; i<j; i++) {
+          if (data) {
+            data.index = i;
+            data.first = (i === 0);
+            data.last  = (i === (context.length-1));
+          }
+          ret = ret + fn(context[i], { data: data });
+        }
+      } else {
+        for(var key in context) {
+          if(context.hasOwnProperty(key)) {
+            if(data) { 
+              data.key = key; 
+              data.index = i;
+              data.first = (i === 0);
+            }
+            ret = ret + fn(context[key], {data: data});
+            i++;
+          }
+        }
+      }
+    }
+
+    if(i === 0){
+      ret = inverse(this);
+    }
+
+    return ret;
+  });
+
+  instance.registerHelper('if', function(conditional, options) {
+    if (isFunction(conditional)) { conditional = conditional.call(this); }
+
+    // Default behavior is to render the positive path if the value is truthy and not empty.
+    // The `includeZero` option may be set to treat the condtional as purely not empty based on the
+    // behavior of isEmpty. Effectively this determines if 0 is handled by the positive path or negative.
+    if ((!options.hash.includeZero && !conditional) || Utils.isEmpty(conditional)) {
+      return options.inverse(this);
+    } else {
+      return options.fn(this);
+    }
+  });
+
+  instance.registerHelper('unless', function(conditional, options) {
+    return instance.helpers['if'].call(this, conditional, {fn: options.inverse, inverse: options.fn, hash: options.hash});
+  });
+
+  instance.registerHelper('with', function(context, options) {
+    if (isFunction(context)) { context = context.call(this); }
+
+    if (!Utils.isEmpty(context)) return options.fn(context);
+  });
+
+  instance.registerHelper('log', function(context, options) {
+    var level = options.data && options.data.level != null ? parseInt(options.data.level, 10) : 1;
+    instance.log(level, context);
+  });
+}
+
+var logger = {
+  methodMap: { 0: 'debug', 1: 'info', 2: 'warn', 3: 'error' },
+
+  // State enum
+  DEBUG: 0,
+  INFO: 1,
+  WARN: 2,
+  ERROR: 3,
+  level: 3,
+
+  // can be overridden in the host environment
+  log: function(level, obj) {
+    if (logger.level <= level) {
+      var method = logger.methodMap[level];
+      if (typeof console !== 'undefined' && console[method]) {
+        console[method].call(console, obj);
+      }
+    }
+  }
+};
+exports.logger = logger;
+function log(level, obj) { logger.log(level, obj); }
+
+exports.log = log;var createFrame = function(object) {
+  var obj = {};
+  Utils.extend(obj, object);
+  return obj;
+};
+exports.createFrame = createFrame;
+},{"./exception":2,"./utils":5}],2:[function(require,module,exports){
+"use strict";
+
+var errorProps = ['description', 'fileName', 'lineNumber', 'message', 'name', 'number', 'stack'];
+
+function Exception(message, node) {
+  var line;
+  if (node && node.firstLine) {
+    line = node.firstLine;
+
+    message += ' - ' + line + ':' + node.firstColumn;
+  }
+
+  var tmp = Error.prototype.constructor.call(this, message);
+
+  // Unfortunately errors are not enumerable in Chrome (at least), so `for prop in tmp` doesn't work.
+  for (var idx = 0; idx < errorProps.length; idx++) {
+    this[errorProps[idx]] = tmp[errorProps[idx]];
+  }
+
+  if (line) {
+    this.lineNumber = line;
+    this.column = node.firstColumn;
+  }
+}
+
+Exception.prototype = new Error();
+
+exports["default"] = Exception;
+},{}],3:[function(require,module,exports){
+"use strict";
+var Utils = require("./utils");
+var Exception = require("./exception")["default"];
+var COMPILER_REVISION = require("./base").COMPILER_REVISION;
+var REVISION_CHANGES = require("./base").REVISION_CHANGES;
+
+function checkRevision(compilerInfo) {
+  var compilerRevision = compilerInfo && compilerInfo[0] || 1,
+      currentRevision = COMPILER_REVISION;
+
+  if (compilerRevision !== currentRevision) {
+    if (compilerRevision < currentRevision) {
+      var runtimeVersions = REVISION_CHANGES[currentRevision],
+          compilerVersions = REVISION_CHANGES[compilerRevision];
+      throw new Exception("Template was precompiled with an older version of Handlebars than the current runtime. "+
+            "Please update your precompiler to a newer version ("+runtimeVersions+") or downgrade your runtime to an older version ("+compilerVersions+").");
+    } else {
+      // Use the embedded version info since the runtime doesn't know about this revision yet
+      throw new Exception("Template was precompiled with a newer version of Handlebars than the current runtime. "+
+            "Please update your runtime to a newer version ("+compilerInfo[1]+").");
+    }
+  }
+}
+
+exports.checkRevision = checkRevision;// TODO: Remove this line and break up compilePartial
+
+function template(templateSpec, env) {
+  if (!env) {
+    throw new Exception("No environment passed to template");
+  }
+
+  // Note: Using env.VM references rather than local var references throughout this section to allow
+  // for external users to override these as psuedo-supported APIs.
+  var invokePartialWrapper = function(partial, name, context, helpers, partials, data) {
+    var result = env.VM.invokePartial.apply(this, arguments);
+    if (result != null) { return result; }
+
+    if (env.compile) {
+      var options = { helpers: helpers, partials: partials, data: data };
+      partials[name] = env.compile(partial, { data: data !== undefined }, env);
+      return partials[name](context, options);
+    } else {
+      throw new Exception("The partial " + name + " could not be compiled when running in runtime-only mode");
+    }
+  };
+
+  // Just add water
+  var container = {
+    escapeExpression: Utils.escapeExpression,
+    invokePartial: invokePartialWrapper,
+    programs: [],
+    program: function(i, fn, data) {
+      var programWrapper = this.programs[i];
+      if(data) {
+        programWrapper = program(i, fn, data);
+      } else if (!programWrapper) {
+        programWrapper = this.programs[i] = program(i, fn);
+      }
+      return programWrapper;
+    },
+    merge: function(param, common) {
+      var ret = param || common;
+
+      if (param && common && (param !== common)) {
+        ret = {};
+        Utils.extend(ret, common);
+        Utils.extend(ret, param);
+      }
+      return ret;
+    },
+    programWithDepth: env.VM.programWithDepth,
+    noop: env.VM.noop,
+    compilerInfo: null
+  };
+
+  return function(context, options) {
+    options = options || {};
+    var namespace = options.partial ? options : env,
+        helpers,
+        partials;
+
+    if (!options.partial) {
+      helpers = options.helpers;
+      partials = options.partials;
+    }
+    var result = templateSpec.call(
+          container,
+          namespace, context,
+          helpers,
+          partials,
+          options.data);
+
+    if (!options.partial) {
+      env.VM.checkRevision(container.compilerInfo);
+    }
+
+    return result;
+  };
+}
+
+exports.template = template;function programWithDepth(i, fn, data /*, $depth */) {
+  var args = Array.prototype.slice.call(arguments, 3);
+
+  var prog = function(context, options) {
+    options = options || {};
+
+    return fn.apply(this, [context, options.data || data].concat(args));
+  };
+  prog.program = i;
+  prog.depth = args.length;
+  return prog;
+}
+
+exports.programWithDepth = programWithDepth;function program(i, fn, data) {
+  var prog = function(context, options) {
+    options = options || {};
+
+    return fn(context, options.data || data);
+  };
+  prog.program = i;
+  prog.depth = 0;
+  return prog;
+}
+
+exports.program = program;function invokePartial(partial, name, context, helpers, partials, data) {
+  var options = { partial: true, helpers: helpers, partials: partials, data: data };
+
+  if(partial === undefined) {
+    throw new Exception("The partial " + name + " could not be found");
+  } else if(partial instanceof Function) {
+    return partial(context, options);
+  }
+}
+
+exports.invokePartial = invokePartial;function noop() { return ""; }
+
+exports.noop = noop;
+},{"./base":1,"./exception":2,"./utils":5}],4:[function(require,module,exports){
+"use strict";
+// Build out our basic SafeString type
+function SafeString(string) {
+  this.string = string;
+}
+
+SafeString.prototype.toString = function() {
+  return "" + this.string;
+};
+
+exports["default"] = SafeString;
+},{}],5:[function(require,module,exports){
+"use strict";
+/*jshint -W004 */
+var SafeString = require("./safe-string")["default"];
+
+var escape = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#x27;",
+  "`": "&#x60;"
+};
+
+var badChars = /[&<>"'`]/g;
+var possible = /[&<>"'`]/;
+
+function escapeChar(chr) {
+  return escape[chr] || "&amp;";
+}
+
+function extend(obj, value) {
+  for(var key in value) {
+    if(Object.prototype.hasOwnProperty.call(value, key)) {
+      obj[key] = value[key];
+    }
+  }
+}
+
+exports.extend = extend;var toString = Object.prototype.toString;
+exports.toString = toString;
+// Sourced from lodash
+// https://github.com/bestiejs/lodash/blob/master/LICENSE.txt
+var isFunction = function(value) {
+  return typeof value === 'function';
+};
+// fallback for older versions of Chrome and Safari
+if (isFunction(/x/)) {
+  isFunction = function(value) {
+    return typeof value === 'function' && toString.call(value) === '[object Function]';
+  };
+}
+var isFunction;
+exports.isFunction = isFunction;
+var isArray = Array.isArray || function(value) {
+  return (value && typeof value === 'object') ? toString.call(value) === '[object Array]' : false;
+};
+exports.isArray = isArray;
+
+function escapeExpression(string) {
+  // don't escape SafeStrings, since they're already safe
+  if (string instanceof SafeString) {
+    return string.toString();
+  } else if (!string && string !== 0) {
+    return "";
+  }
+
+  // Force a string conversion as this will be done by the append regardless and
+  // the regex test will do this transparently behind the scenes, causing issues if
+  // an object's to string has escaped characters in it.
+  string = "" + string;
+
+  if(!possible.test(string)) { return string; }
+  return string.replace(badChars, escapeChar);
+}
+
+exports.escapeExpression = escapeExpression;function isEmpty(value) {
+  if (!value && value !== 0) {
+    return true;
+  } else if (isArray(value) && value.length === 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+exports.isEmpty = isEmpty;
+},{"./safe-string":4}],"auth":[function(require,module,exports){
 /**
  * Baltazzar Auth
  * Versão: 1.0.4
@@ -160,173 +594,7 @@ exports.isLogged = function() {
 },{}]},{},[1])
 (1)
 });
-}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],"backbone.babysitter":[function(require,module,exports){
-module.exports=require('CE9MhP');
-},{}],"CE9MhP":[function(require,module,exports){
-// Backbone.BabySitter
-// -------------------
-// v0.1.0
-//
-// Copyright (c)2014 Derick Bailey, Muted Solutions, LLC.
-// Distributed under MIT license
-//
-// http://github.com/marionettejs/backbone.babysitter
-
-// Backbone.ChildViewContainer
-// ---------------------------
-//
-// Provide a container to store, retrieve and
-// shut down child views.
-
-Backbone.ChildViewContainer = (function(Backbone, _){
-  
-  // Container Constructor
-  // ---------------------
-
-  var Container = function(views){
-    this._views = {};
-    this._indexByModel = {};
-    this._indexByCustom = {};
-    this._updateLength();
-
-    _.each(views, this.add, this);
-  };
-
-  // Container Methods
-  // -----------------
-
-  _.extend(Container.prototype, {
-
-    // Add a view to this container. Stores the view
-    // by `cid` and makes it searchable by the model
-    // cid (and model itself). Optionally specify
-    // a custom key to store an retrieve the view.
-    add: function(view, customIndex){
-      var viewCid = view.cid;
-
-      // store the view
-      this._views[viewCid] = view;
-
-      // index it by model
-      if (view.model){
-        this._indexByModel[view.model.cid] = viewCid;
-      }
-
-      // index by custom
-      if (customIndex){
-        this._indexByCustom[customIndex] = viewCid;
-      }
-
-      this._updateLength();
-      return this;
-    },
-
-    // Find a view by the model that was attached to
-    // it. Uses the model's `cid` to find it.
-    findByModel: function(model){
-      return this.findByModelCid(model.cid);
-    },
-
-    // Find a view by the `cid` of the model that was attached to
-    // it. Uses the model's `cid` to find the view `cid` and
-    // retrieve the view using it.
-    findByModelCid: function(modelCid){
-      var viewCid = this._indexByModel[modelCid];
-      return this.findByCid(viewCid);
-    },
-
-    // Find a view by a custom indexer.
-    findByCustom: function(index){
-      var viewCid = this._indexByCustom[index];
-      return this.findByCid(viewCid);
-    },
-
-    // Find by index. This is not guaranteed to be a
-    // stable index.
-    findByIndex: function(index){
-      return _.values(this._views)[index];
-    },
-
-    // retrieve a view by its `cid` directly
-    findByCid: function(cid){
-      return this._views[cid];
-    },
-
-    // Remove a view
-    remove: function(view){
-      var viewCid = view.cid;
-
-      // delete model index
-      if (view.model){
-        delete this._indexByModel[view.model.cid];
-      }
-
-      // delete custom index
-      _.any(this._indexByCustom, function(cid, key) {
-        if (cid === viewCid) {
-          delete this._indexByCustom[key];
-          return true;
-        }
-      }, this);
-
-      // remove the view from the container
-      delete this._views[viewCid];
-
-      // update the length
-      this._updateLength();
-      return this;
-    },
-
-    // Call a method on every view in the container,
-    // passing parameters to the call method one at a
-    // time, like `function.call`.
-    call: function(method){
-      this.apply(method, _.tail(arguments));
-    },
-
-    // Apply a method on every view in the container,
-    // passing parameters to the call method one at a
-    // time, like `function.apply`.
-    apply: function(method, args){
-      _.each(this._views, function(view){
-        if (_.isFunction(view[method])){
-          view[method].apply(view, args || []);
-        }
-      });
-    },
-
-    // Update the `.length` attribute on this container
-    _updateLength: function(){
-      this.length = _.size(this._views);
-    }
-  });
-
-  // Borrowing this code from Backbone.Collection:
-  // http://backbonejs.org/docs/backbone.html#section-106
-  //
-  // Mix in methods from Underscore, for iteration, and other
-  // collection related features.
-  var methods = ['forEach', 'each', 'map', 'find', 'detect', 'filter', 
-    'select', 'reject', 'every', 'all', 'some', 'any', 'include', 
-    'contains', 'invoke', 'toArray', 'first', 'initial', 'rest', 
-    'last', 'without', 'isEmpty', 'pluck'];
-
-  _.each(methods, function(method) {
-    Container.prototype[method] = function() {
-      var views = _.values(this._views);
-      var args = [views].concat(_.toArray(arguments));
-      return _[method].apply(_, args);
-    };
-  });
-
-  // return the public API
-  return Container;
-})(Backbone, _);
-
 },{}],"backbone":[function(require,module,exports){
-module.exports=require('zk3e1a');
-},{}],"zk3e1a":[function(require,module,exports){
 //     Backbone.js 1.1.2
 
 //     (c) 2010-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -1936,440 +2204,7 @@ module.exports=require('zk3e1a');
 
 }));
 
-},{"underscore":"dMAWyx"}],"lmbBCY":[function(require,module,exports){
-// Backbone.Wreqr (Backbone.Marionette)
-// ----------------------------------
-// v1.2.1
-//
-// Copyright (c)2014 Derick Bailey, Muted Solutions, LLC.
-// Distributed under MIT license
-//
-// http://github.com/marionettejs/backbone.wreqr
-
-
-(function(root, factory) {
-
-  if (typeof define === 'function' && define.amd) {
-    define(['exports', 'backbone', 'underscore'], function(exports, Backbone, _) {
-      factory(exports, Backbone, _);
-    });
-  } else if (typeof exports !== 'undefined') {
-    var Backbone = require('backbone');
-    var _ = require('underscore');
-    factory(exports, Backbone, _);
-  } else {
-    factory({}, root.Backbone, root._);
-  }
-
-}(this, function(Wreqr, Backbone, _) {
-  "use strict";
-
-  Backbone.Wreqr = Wreqr;
-
-  // Handlers
-// --------
-// A registry of functions to call, given a name
-
-Wreqr.Handlers = (function(Backbone, _){
-  "use strict";
-  
-  // Constructor
-  // -----------
-
-  var Handlers = function(options){
-    this.options = options;
-    this._wreqrHandlers = {};
-    
-    if (_.isFunction(this.initialize)){
-      this.initialize(options);
-    }
-  };
-
-  Handlers.extend = Backbone.Model.extend;
-
-  // Instance Members
-  // ----------------
-
-  _.extend(Handlers.prototype, Backbone.Events, {
-
-    // Add multiple handlers using an object literal configuration
-    setHandlers: function(handlers){
-      _.each(handlers, function(handler, name){
-        var context = null;
-
-        if (_.isObject(handler) && !_.isFunction(handler)){
-          context = handler.context;
-          handler = handler.callback;
-        }
-
-        this.setHandler(name, handler, context);
-      }, this);
-    },
-
-    // Add a handler for the given name, with an
-    // optional context to run the handler within
-    setHandler: function(name, handler, context){
-      var config = {
-        callback: handler,
-        context: context
-      };
-
-      this._wreqrHandlers[name] = config;
-
-      this.trigger("handler:add", name, handler, context);
-    },
-
-    // Determine whether or not a handler is registered
-    hasHandler: function(name){
-      return !! this._wreqrHandlers[name];
-    },
-
-    // Get the currently registered handler for
-    // the specified name. Throws an exception if
-    // no handler is found.
-    getHandler: function(name){
-      var config = this._wreqrHandlers[name];
-
-      if (!config){
-        return;
-      }
-
-      return function(){
-        var args = Array.prototype.slice.apply(arguments);
-        return config.callback.apply(config.context, args);
-      };
-    },
-
-    // Remove a handler for the specified name
-    removeHandler: function(name){
-      delete this._wreqrHandlers[name];
-    },
-
-    // Remove all handlers from this registry
-    removeAllHandlers: function(){
-      this._wreqrHandlers = {};
-    }
-  });
-
-  return Handlers;
-})(Backbone, _);
-
-  // Wreqr.CommandStorage
-// --------------------
-//
-// Store and retrieve commands for execution.
-Wreqr.CommandStorage = (function(){
-  "use strict";
-
-  // Constructor function
-  var CommandStorage = function(options){
-    this.options = options;
-    this._commands = {};
-
-    if (_.isFunction(this.initialize)){
-      this.initialize(options);
-    }
-  };
-
-  // Instance methods
-  _.extend(CommandStorage.prototype, Backbone.Events, {
-
-    // Get an object literal by command name, that contains
-    // the `commandName` and the `instances` of all commands
-    // represented as an array of arguments to process
-    getCommands: function(commandName){
-      var commands = this._commands[commandName];
-
-      // we don't have it, so add it
-      if (!commands){
-
-        // build the configuration
-        commands = {
-          command: commandName, 
-          instances: []
-        };
-
-        // store it
-        this._commands[commandName] = commands;
-      }
-
-      return commands;
-    },
-
-    // Add a command by name, to the storage and store the
-    // args for the command
-    addCommand: function(commandName, args){
-      var command = this.getCommands(commandName);
-      command.instances.push(args);
-    },
-
-    // Clear all commands for the given `commandName`
-    clearCommands: function(commandName){
-      var command = this.getCommands(commandName);
-      command.instances = [];
-    }
-  });
-
-  return CommandStorage;
-})();
-
-  // Wreqr.Commands
-// --------------
-//
-// A simple command pattern implementation. Register a command
-// handler and execute it.
-Wreqr.Commands = (function(Wreqr){
-  "use strict";
-
-  return Wreqr.Handlers.extend({
-    // default storage type
-    storageType: Wreqr.CommandStorage,
-
-    constructor: function(options){
-      this.options = options || {};
-
-      this._initializeStorage(this.options);
-      this.on("handler:add", this._executeCommands, this);
-
-      var args = Array.prototype.slice.call(arguments);
-      Wreqr.Handlers.prototype.constructor.apply(this, args);
-    },
-
-    // Execute a named command with the supplied args
-    execute: function(name, args){
-      name = arguments[0];
-      args = Array.prototype.slice.call(arguments, 1);
-
-      if (this.hasHandler(name)){
-        this.getHandler(name).apply(this, args);
-      } else {
-        this.storage.addCommand(name, args);
-      }
-
-    },
-
-    // Internal method to handle bulk execution of stored commands
-    _executeCommands: function(name, handler, context){
-      var command = this.storage.getCommands(name);
-
-      // loop through and execute all the stored command instances
-      _.each(command.instances, function(args){
-        handler.apply(context, args);
-      });
-
-      this.storage.clearCommands(name);
-    },
-
-    // Internal method to initialize storage either from the type's
-    // `storageType` or the instance `options.storageType`.
-    _initializeStorage: function(options){
-      var storage;
-
-      var StorageType = options.storageType || this.storageType;
-      if (_.isFunction(StorageType)){
-        storage = new StorageType();
-      } else {
-        storage = StorageType;
-      }
-
-      this.storage = storage;
-    }
-  });
-
-})(Wreqr);
-
-  // Wreqr.RequestResponse
-// ---------------------
-//
-// A simple request/response implementation. Register a
-// request handler, and return a response from it
-Wreqr.RequestResponse = (function(Wreqr){
-  "use strict";
-
-  return Wreqr.Handlers.extend({
-    request: function(){
-      var name = arguments[0];
-      var args = Array.prototype.slice.call(arguments, 1);
-      if (this.hasHandler(name)) {
-        return this.getHandler(name).apply(this, args);
-      }
-    }
-  });
-
-})(Wreqr);
-
-  // Event Aggregator
-// ----------------
-// A pub-sub object that can be used to decouple various parts
-// of an application through event-driven architecture.
-
-Wreqr.EventAggregator = (function(Backbone, _){
-  "use strict";
-  var EA = function(){};
-
-  // Copy the `extend` function used by Backbone's classes
-  EA.extend = Backbone.Model.extend;
-
-  // Copy the basic Backbone.Events on to the event aggregator
-  _.extend(EA.prototype, Backbone.Events);
-
-  return EA;
-})(Backbone, _);
-
-  // Wreqr.Channel
-// --------------
-//
-// An object that wraps the three messaging systems:
-// EventAggregator, RequestResponse, Commands
-Wreqr.Channel = (function(Wreqr){
-  "use strict";
-
-  var Channel = function(channelName) {
-    this.vent        = new Backbone.Wreqr.EventAggregator();
-    this.reqres      = new Backbone.Wreqr.RequestResponse();
-    this.commands    = new Backbone.Wreqr.Commands();
-    this.channelName = channelName;
-  };
-
-  _.extend(Channel.prototype, {
-
-    // Remove all handlers from the messaging systems of this channel
-    reset: function() {
-      this.vent.off();
-      this.vent.stopListening();
-      this.reqres.removeAllHandlers();
-      this.commands.removeAllHandlers();
-      return this;
-    },
-
-    // Connect a hash of events; one for each messaging system
-    connectEvents: function(hash, context) {
-      this._connect('vent', hash, context);
-      return this;
-    },
-
-    connectCommands: function(hash, context) {
-      this._connect('commands', hash, context);
-      return this;
-    },
-
-    connectRequests: function(hash, context) {
-      this._connect('reqres', hash, context);
-      return this;
-    },
-
-    // Attach the handlers to a given message system `type`
-    _connect: function(type, hash, context) {
-      if (!hash) {
-        return;
-      }
-
-      context = context || this;
-      var method = (type === 'vent') ? 'on' : 'setHandler';
-
-      _.each(hash, function(fn, eventName) {
-        this[type][method](eventName, _.bind(fn, context));
-      }, this);
-    }
-  });
-
-
-  return Channel;
-})(Wreqr);
-
-  // Wreqr.Radio
-// --------------
-//
-// An object that lets you communicate with many channels.
-Wreqr.radio = (function(Wreqr){
-  "use strict";
-
-  var Radio = function() {
-    this._channels = {};
-    this.vent = {};
-    this.commands = {};
-    this.reqres = {};
-    this._proxyMethods();
-  };
-
-  _.extend(Radio.prototype, {
-
-    channel: function(channelName) {
-      if (!channelName) {
-        throw new Error('Channel must receive a name');
-      }
-
-      return this._getChannel( channelName );
-    },
-
-    _getChannel: function(channelName) {
-      var channel = this._channels[channelName];
-
-      if(!channel) {
-        channel = new Wreqr.Channel(channelName);
-        this._channels[channelName] = channel;
-      }
-
-      return channel;
-    },
-
-    _proxyMethods: function() {
-      _.each(['vent', 'commands', 'reqres'], function(system) {
-        _.each( messageSystems[system], function(method) {
-          this[system][method] = proxyMethod(this, system, method);
-        }, this);
-      }, this);
-    }
-  });
-
-
-  var messageSystems = {
-    vent: [
-      'on',
-      'off',
-      'trigger',
-      'once',
-      'stopListening',
-      'listenTo',
-      'listenToOnce'
-    ],
-
-    commands: [
-      'execute',
-      'setHandler',
-      'setHandlers',
-      'removeHandler',
-      'removeAllHandlers'
-    ],
-
-    reqres: [
-      'request',
-      'setHandler',
-      'setHandlers',
-      'removeHandler',
-      'removeAllHandlers'
-    ]
-  };
-
-  var proxyMethod = function(radio, system, method) {
-    return function(channelName) {
-      var messageSystem = radio._getChannel(channelName)[system];
-      var args = Array.prototype.slice.call(arguments, 1);
-
-      messageSystem[method].apply(messageSystem, args);
-    };
-  };
-
-  return new Radio();
-
-})(Wreqr);
-
-
-}));
-
-},{"backbone":"zk3e1a","underscore":"dMAWyx"}],"backbone.wreqr":[function(require,module,exports){
-module.exports=require('lmbBCY');
-},{}],"EtaNWs":[function(require,module,exports){
+},{"underscore":undefined}],"bootstrap":[function(require,module,exports){
 /*!
  * Bootstrap v3.2.0 (http://getbootstrap.com)
  * Copyright 2011-2014 Twitter, Inc.
@@ -4485,9 +4320,40 @@ if (typeof jQuery === 'undefined') { throw new Error('Bootstrap\'s JavaScript re
 
 }(jQuery);
 
-},{}],"bootstrap":[function(require,module,exports){
-module.exports=require('EtaNWs');
-},{}],"F1S2O9":[function(require,module,exports){
+},{}],"handlebars.runtime":[function(require,module,exports){
+"use strict";
+/*globals Handlebars: true */
+var base = require("./handlebars/base");
+
+// Each of these augment the Handlebars object. No need to setup here.
+// (This is done to easily share code between commonjs and browse envs)
+var SafeString = require("./handlebars/safe-string")["default"];
+var Exception = require("./handlebars/exception")["default"];
+var Utils = require("./handlebars/utils");
+var runtime = require("./handlebars/runtime");
+
+// For compatibility and usage outside of module systems, make the Handlebars object a namespace
+var create = function() {
+  var hb = new base.HandlebarsEnvironment();
+
+  Utils.extend(hb, base);
+  hb.SafeString = SafeString;
+  hb.Exception = Exception;
+  hb.Utils = Utils;
+
+  hb.VM = runtime;
+  hb.template = function(spec) {
+    return runtime.template(spec, hb);
+  };
+
+  return hb;
+};
+
+var Handlebars = create();
+Handlebars.create = create;
+
+exports["default"] = Handlebars;
+},{"./handlebars/base":1,"./handlebars/exception":2,"./handlebars/runtime":3,"./handlebars/safe-string":4,"./handlebars/utils":5}],"jquery":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v1.11.0
  * http://jquery.com/
@@ -14826,11 +14692,7 @@ return jQuery;
 
 }));
 
-},{}],"jquery":[function(require,module,exports){
-module.exports=require('F1S2O9');
 },{}],"marionette":[function(require,module,exports){
-module.exports=require('1Kk0Oh');
-},{}],"1Kk0Oh":[function(require,module,exports){
 // MarionetteJS (Backbone.Marionette)
 // ----------------------------------
 // v2.0.1
@@ -18086,8 +17948,7 @@ module.exports=require('1Kk0Oh');
   return Marionette;
 }));
 
-},{"backbone":"zk3e1a","underscore":"dMAWyx"}],"ZPPkZq":[function(require,module,exports){
-(function (global){
+},{"backbone":undefined,"underscore":undefined}],"moment":[function(require,module,exports){
 //! moment.js
 //! version : 2.7.0
 //! authors : Tim Wood, Iskren Chernev, Moment.js contributors
@@ -20699,11 +20560,7 @@ module.exports=require('1Kk0Oh');
     }
 }).call(this);
 
-}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],"moment":[function(require,module,exports){
-module.exports=require('ZPPkZq');
-},{}],"amHjuu":[function(require,module,exports){
-(function (global){
+},{}],"multimodal":[function(require,module,exports){
 /**
  * Baltazzar multimodal
  * Versão: 1.1.2
@@ -21141,11 +20998,7 @@ module.exports = function (options) {
 },{}]},{},[2])
 (2)
 });
-}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],"multimodal":[function(require,module,exports){
-module.exports=require('amHjuu');
-},{}],"x4Tcia":[function(require,module,exports){
-(function (global){
+},{}],"paginator":[function(require,module,exports){
 /**
  * Baltazzar Paginator
  * Versão: 0.2.3
@@ -21406,11 +21259,7 @@ exports.pagedCollection = Backbone.Collection.extend({
 },{}]},{},[1])
 (1)
 });;
-}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],"paginator":[function(require,module,exports){
-module.exports=require('x4Tcia');
-},{}],"xaCQuG":[function(require,module,exports){
-(function (global){
+},{}],"searcher":[function(require,module,exports){
 /**
  * Baltazzar Searcher
  * Versão: 0.2.2
@@ -21565,10 +21414,7 @@ module.exports = Backbone.View.extend({
 },{}]},{},[1])
 (1)
 });;
-}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],"searcher":[function(require,module,exports){
-module.exports=require('xaCQuG');
-},{}],"dMAWyx":[function(require,module,exports){
+},{}],"underscore":[function(require,module,exports){
 //     Underscore.js 1.6.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -22913,478 +22759,4 @@ module.exports=require('xaCQuG');
   }
 }).call(this);
 
-},{}],"underscore":[function(require,module,exports){
-module.exports=require('dMAWyx');
-},{}],"n3p091":[function(require,module,exports){
-"use strict";
-/*globals Handlebars: true */
-var base = require("./handlebars/base");
-
-// Each of these augment the Handlebars object. No need to setup here.
-// (This is done to easily share code between commonjs and browse envs)
-var SafeString = require("./handlebars/safe-string")["default"];
-var Exception = require("./handlebars/exception")["default"];
-var Utils = require("./handlebars/utils");
-var runtime = require("./handlebars/runtime");
-
-// For compatibility and usage outside of module systems, make the Handlebars object a namespace
-var create = function() {
-  var hb = new base.HandlebarsEnvironment();
-
-  Utils.extend(hb, base);
-  hb.SafeString = SafeString;
-  hb.Exception = Exception;
-  hb.Utils = Utils;
-
-  hb.VM = runtime;
-  hb.template = function(spec) {
-    return runtime.template(spec, hb);
-  };
-
-  return hb;
-};
-
-var Handlebars = create();
-Handlebars.create = create;
-
-exports["default"] = Handlebars;
-},{"./handlebars/base":27,"./handlebars/exception":28,"./handlebars/runtime":29,"./handlebars/safe-string":30,"./handlebars/utils":31}],"handlebars.runtime":[function(require,module,exports){
-module.exports=require('n3p091');
-},{}],27:[function(require,module,exports){
-"use strict";
-var Utils = require("./utils");
-var Exception = require("./exception")["default"];
-
-var VERSION = "1.3.0";
-exports.VERSION = VERSION;var COMPILER_REVISION = 4;
-exports.COMPILER_REVISION = COMPILER_REVISION;
-var REVISION_CHANGES = {
-  1: '<= 1.0.rc.2', // 1.0.rc.2 is actually rev2 but doesn't report it
-  2: '== 1.0.0-rc.3',
-  3: '== 1.0.0-rc.4',
-  4: '>= 1.0.0'
-};
-exports.REVISION_CHANGES = REVISION_CHANGES;
-var isArray = Utils.isArray,
-    isFunction = Utils.isFunction,
-    toString = Utils.toString,
-    objectType = '[object Object]';
-
-function HandlebarsEnvironment(helpers, partials) {
-  this.helpers = helpers || {};
-  this.partials = partials || {};
-
-  registerDefaultHelpers(this);
-}
-
-exports.HandlebarsEnvironment = HandlebarsEnvironment;HandlebarsEnvironment.prototype = {
-  constructor: HandlebarsEnvironment,
-
-  logger: logger,
-  log: log,
-
-  registerHelper: function(name, fn, inverse) {
-    if (toString.call(name) === objectType) {
-      if (inverse || fn) { throw new Exception('Arg not supported with multiple helpers'); }
-      Utils.extend(this.helpers, name);
-    } else {
-      if (inverse) { fn.not = inverse; }
-      this.helpers[name] = fn;
-    }
-  },
-
-  registerPartial: function(name, str) {
-    if (toString.call(name) === objectType) {
-      Utils.extend(this.partials,  name);
-    } else {
-      this.partials[name] = str;
-    }
-  }
-};
-
-function registerDefaultHelpers(instance) {
-  instance.registerHelper('helperMissing', function(arg) {
-    if(arguments.length === 2) {
-      return undefined;
-    } else {
-      throw new Exception("Missing helper: '" + arg + "'");
-    }
-  });
-
-  instance.registerHelper('blockHelperMissing', function(context, options) {
-    var inverse = options.inverse || function() {}, fn = options.fn;
-
-    if (isFunction(context)) { context = context.call(this); }
-
-    if(context === true) {
-      return fn(this);
-    } else if(context === false || context == null) {
-      return inverse(this);
-    } else if (isArray(context)) {
-      if(context.length > 0) {
-        return instance.helpers.each(context, options);
-      } else {
-        return inverse(this);
-      }
-    } else {
-      return fn(context);
-    }
-  });
-
-  instance.registerHelper('each', function(context, options) {
-    var fn = options.fn, inverse = options.inverse;
-    var i = 0, ret = "", data;
-
-    if (isFunction(context)) { context = context.call(this); }
-
-    if (options.data) {
-      data = createFrame(options.data);
-    }
-
-    if(context && typeof context === 'object') {
-      if (isArray(context)) {
-        for(var j = context.length; i<j; i++) {
-          if (data) {
-            data.index = i;
-            data.first = (i === 0);
-            data.last  = (i === (context.length-1));
-          }
-          ret = ret + fn(context[i], { data: data });
-        }
-      } else {
-        for(var key in context) {
-          if(context.hasOwnProperty(key)) {
-            if(data) { 
-              data.key = key; 
-              data.index = i;
-              data.first = (i === 0);
-            }
-            ret = ret + fn(context[key], {data: data});
-            i++;
-          }
-        }
-      }
-    }
-
-    if(i === 0){
-      ret = inverse(this);
-    }
-
-    return ret;
-  });
-
-  instance.registerHelper('if', function(conditional, options) {
-    if (isFunction(conditional)) { conditional = conditional.call(this); }
-
-    // Default behavior is to render the positive path if the value is truthy and not empty.
-    // The `includeZero` option may be set to treat the condtional as purely not empty based on the
-    // behavior of isEmpty. Effectively this determines if 0 is handled by the positive path or negative.
-    if ((!options.hash.includeZero && !conditional) || Utils.isEmpty(conditional)) {
-      return options.inverse(this);
-    } else {
-      return options.fn(this);
-    }
-  });
-
-  instance.registerHelper('unless', function(conditional, options) {
-    return instance.helpers['if'].call(this, conditional, {fn: options.inverse, inverse: options.fn, hash: options.hash});
-  });
-
-  instance.registerHelper('with', function(context, options) {
-    if (isFunction(context)) { context = context.call(this); }
-
-    if (!Utils.isEmpty(context)) return options.fn(context);
-  });
-
-  instance.registerHelper('log', function(context, options) {
-    var level = options.data && options.data.level != null ? parseInt(options.data.level, 10) : 1;
-    instance.log(level, context);
-  });
-}
-
-var logger = {
-  methodMap: { 0: 'debug', 1: 'info', 2: 'warn', 3: 'error' },
-
-  // State enum
-  DEBUG: 0,
-  INFO: 1,
-  WARN: 2,
-  ERROR: 3,
-  level: 3,
-
-  // can be overridden in the host environment
-  log: function(level, obj) {
-    if (logger.level <= level) {
-      var method = logger.methodMap[level];
-      if (typeof console !== 'undefined' && console[method]) {
-        console[method].call(console, obj);
-      }
-    }
-  }
-};
-exports.logger = logger;
-function log(level, obj) { logger.log(level, obj); }
-
-exports.log = log;var createFrame = function(object) {
-  var obj = {};
-  Utils.extend(obj, object);
-  return obj;
-};
-exports.createFrame = createFrame;
-},{"./exception":28,"./utils":31}],28:[function(require,module,exports){
-"use strict";
-
-var errorProps = ['description', 'fileName', 'lineNumber', 'message', 'name', 'number', 'stack'];
-
-function Exception(message, node) {
-  var line;
-  if (node && node.firstLine) {
-    line = node.firstLine;
-
-    message += ' - ' + line + ':' + node.firstColumn;
-  }
-
-  var tmp = Error.prototype.constructor.call(this, message);
-
-  // Unfortunately errors are not enumerable in Chrome (at least), so `for prop in tmp` doesn't work.
-  for (var idx = 0; idx < errorProps.length; idx++) {
-    this[errorProps[idx]] = tmp[errorProps[idx]];
-  }
-
-  if (line) {
-    this.lineNumber = line;
-    this.column = node.firstColumn;
-  }
-}
-
-Exception.prototype = new Error();
-
-exports["default"] = Exception;
-},{}],29:[function(require,module,exports){
-"use strict";
-var Utils = require("./utils");
-var Exception = require("./exception")["default"];
-var COMPILER_REVISION = require("./base").COMPILER_REVISION;
-var REVISION_CHANGES = require("./base").REVISION_CHANGES;
-
-function checkRevision(compilerInfo) {
-  var compilerRevision = compilerInfo && compilerInfo[0] || 1,
-      currentRevision = COMPILER_REVISION;
-
-  if (compilerRevision !== currentRevision) {
-    if (compilerRevision < currentRevision) {
-      var runtimeVersions = REVISION_CHANGES[currentRevision],
-          compilerVersions = REVISION_CHANGES[compilerRevision];
-      throw new Exception("Template was precompiled with an older version of Handlebars than the current runtime. "+
-            "Please update your precompiler to a newer version ("+runtimeVersions+") or downgrade your runtime to an older version ("+compilerVersions+").");
-    } else {
-      // Use the embedded version info since the runtime doesn't know about this revision yet
-      throw new Exception("Template was precompiled with a newer version of Handlebars than the current runtime. "+
-            "Please update your runtime to a newer version ("+compilerInfo[1]+").");
-    }
-  }
-}
-
-exports.checkRevision = checkRevision;// TODO: Remove this line and break up compilePartial
-
-function template(templateSpec, env) {
-  if (!env) {
-    throw new Exception("No environment passed to template");
-  }
-
-  // Note: Using env.VM references rather than local var references throughout this section to allow
-  // for external users to override these as psuedo-supported APIs.
-  var invokePartialWrapper = function(partial, name, context, helpers, partials, data) {
-    var result = env.VM.invokePartial.apply(this, arguments);
-    if (result != null) { return result; }
-
-    if (env.compile) {
-      var options = { helpers: helpers, partials: partials, data: data };
-      partials[name] = env.compile(partial, { data: data !== undefined }, env);
-      return partials[name](context, options);
-    } else {
-      throw new Exception("The partial " + name + " could not be compiled when running in runtime-only mode");
-    }
-  };
-
-  // Just add water
-  var container = {
-    escapeExpression: Utils.escapeExpression,
-    invokePartial: invokePartialWrapper,
-    programs: [],
-    program: function(i, fn, data) {
-      var programWrapper = this.programs[i];
-      if(data) {
-        programWrapper = program(i, fn, data);
-      } else if (!programWrapper) {
-        programWrapper = this.programs[i] = program(i, fn);
-      }
-      return programWrapper;
-    },
-    merge: function(param, common) {
-      var ret = param || common;
-
-      if (param && common && (param !== common)) {
-        ret = {};
-        Utils.extend(ret, common);
-        Utils.extend(ret, param);
-      }
-      return ret;
-    },
-    programWithDepth: env.VM.programWithDepth,
-    noop: env.VM.noop,
-    compilerInfo: null
-  };
-
-  return function(context, options) {
-    options = options || {};
-    var namespace = options.partial ? options : env,
-        helpers,
-        partials;
-
-    if (!options.partial) {
-      helpers = options.helpers;
-      partials = options.partials;
-    }
-    var result = templateSpec.call(
-          container,
-          namespace, context,
-          helpers,
-          partials,
-          options.data);
-
-    if (!options.partial) {
-      env.VM.checkRevision(container.compilerInfo);
-    }
-
-    return result;
-  };
-}
-
-exports.template = template;function programWithDepth(i, fn, data /*, $depth */) {
-  var args = Array.prototype.slice.call(arguments, 3);
-
-  var prog = function(context, options) {
-    options = options || {};
-
-    return fn.apply(this, [context, options.data || data].concat(args));
-  };
-  prog.program = i;
-  prog.depth = args.length;
-  return prog;
-}
-
-exports.programWithDepth = programWithDepth;function program(i, fn, data) {
-  var prog = function(context, options) {
-    options = options || {};
-
-    return fn(context, options.data || data);
-  };
-  prog.program = i;
-  prog.depth = 0;
-  return prog;
-}
-
-exports.program = program;function invokePartial(partial, name, context, helpers, partials, data) {
-  var options = { partial: true, helpers: helpers, partials: partials, data: data };
-
-  if(partial === undefined) {
-    throw new Exception("The partial " + name + " could not be found");
-  } else if(partial instanceof Function) {
-    return partial(context, options);
-  }
-}
-
-exports.invokePartial = invokePartial;function noop() { return ""; }
-
-exports.noop = noop;
-},{"./base":27,"./exception":28,"./utils":31}],30:[function(require,module,exports){
-"use strict";
-// Build out our basic SafeString type
-function SafeString(string) {
-  this.string = string;
-}
-
-SafeString.prototype.toString = function() {
-  return "" + this.string;
-};
-
-exports["default"] = SafeString;
-},{}],31:[function(require,module,exports){
-"use strict";
-/*jshint -W004 */
-var SafeString = require("./safe-string")["default"];
-
-var escape = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#x27;",
-  "`": "&#x60;"
-};
-
-var badChars = /[&<>"'`]/g;
-var possible = /[&<>"'`]/;
-
-function escapeChar(chr) {
-  return escape[chr] || "&amp;";
-}
-
-function extend(obj, value) {
-  for(var key in value) {
-    if(Object.prototype.hasOwnProperty.call(value, key)) {
-      obj[key] = value[key];
-    }
-  }
-}
-
-exports.extend = extend;var toString = Object.prototype.toString;
-exports.toString = toString;
-// Sourced from lodash
-// https://github.com/bestiejs/lodash/blob/master/LICENSE.txt
-var isFunction = function(value) {
-  return typeof value === 'function';
-};
-// fallback for older versions of Chrome and Safari
-if (isFunction(/x/)) {
-  isFunction = function(value) {
-    return typeof value === 'function' && toString.call(value) === '[object Function]';
-  };
-}
-var isFunction;
-exports.isFunction = isFunction;
-var isArray = Array.isArray || function(value) {
-  return (value && typeof value === 'object') ? toString.call(value) === '[object Array]' : false;
-};
-exports.isArray = isArray;
-
-function escapeExpression(string) {
-  // don't escape SafeStrings, since they're already safe
-  if (string instanceof SafeString) {
-    return string.toString();
-  } else if (!string && string !== 0) {
-    return "";
-  }
-
-  // Force a string conversion as this will be done by the append regardless and
-  // the regex test will do this transparently behind the scenes, causing issues if
-  // an object's to string has escaped characters in it.
-  string = "" + string;
-
-  if(!possible.test(string)) { return string; }
-  return string.replace(badChars, escapeChar);
-}
-
-exports.escapeExpression = escapeExpression;function isEmpty(value) {
-  if (!value && value !== 0) {
-    return true;
-  } else if (isArray(value) && value.length === 0) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-exports.isEmpty = isEmpty;
-},{"./safe-string":30}]},{},[])
+},{}]},{},[]);

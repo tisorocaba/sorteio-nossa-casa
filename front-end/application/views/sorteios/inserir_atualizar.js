@@ -8,9 +8,21 @@ module.exports = BaseView.extend({
 	template: 'sorteios/inserir_atualizar.tpl',
 
 	populateModel: function() {
-		var data = Moment(this.$('#data').val()).isValid() ? Moment(this.$('#data').val()).format('DD/MM/YYYY') : '';
+		var data = Moment(this.$('#data').val()).isValid() ? Moment(this.$('#data').val()).format('DD/MM/YYYY') : '',
+			empreendimentos = [];
+
 		this.model.set('data', data);
 		this.model.set('observacao', this.$('#observacao').val());
+
+		this.$('.empreendimento').each(function() {
+			if($(this).val()) {
+				empreendimentos.push({
+					nome: $(this).val()
+				})
+			}
+		});
+
+		this.model.set('empreendimentos', empreendimentos);
 	},
 
 	salvar: function(ev) {
