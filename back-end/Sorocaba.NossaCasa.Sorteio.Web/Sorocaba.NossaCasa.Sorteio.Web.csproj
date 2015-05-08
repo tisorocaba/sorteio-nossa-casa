@@ -137,7 +137,6 @@
     <None Include="Properties\PublishProfiles\PMS-TEWEB02.pubxml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\NinjectConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="ControllerHelpers\ExcelFileParser.cs" />
@@ -191,7 +190,7 @@
           <AutoAssignPort>True</AutoAssignPort>
           <DevelopmentServerPort>60808</DevelopmentServerPort>
           <DevelopmentServerVPath>/</DevelopmentServerVPath>
-          <IISUrl>http://localhost:9090/nossacasa-sorteio</IISUrl>
+          <IISUrl>http://localhost:9090/nossacasasorteio</IISUrl>
           <NTLMAuthentication>False</NTLMAuthentication>
           <UseCustomServer>False</UseCustomServer>
           <CustomServerUrl>

@@ -34,8 +34,22 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
             SorteioE novoSorteio = new SorteioE() {
                 Data = sorteio.Data,
                 Observacao = sorteio.Observacao,
-                Finalizado = false
+                Finalizado = false,
+                Empreendimentos = new List<Empreendimento>()
             };
+
+            if (sorteio.Empreendimentos == null || sorteio.Empreendimentos.Count < 1) {
+                throw new Exception("Pelo menos um empreendimento deve ser informado.");
+            }
+
+            var empreedimentos = sorteio.Empreendimentos.ToArray();
+            for (int i = 0; i < empreedimentos.Length; i++) {
+                novoSorteio.Empreendimentos.Add(new Empreendimento() {
+                    Ordem = i + 1,
+                    Nome = empreedimentos[i].Nome
+                });
+            }
+
             Context.Sorteio.Add(novoSorteio);
             Context.SaveChanges();
             return novoSorteio;
@@ -44,14 +58,34 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
         public void AtualizarSorteio(int idSorteio, SorteioE sorteio) {
             SorteioE sorteioSalvo = CarregarSorteio(idSorteio);
             VerificarSorteioRealizado(sorteioSalvo);
+
             sorteioSalvo.Data = sorteio.Data;
             sorteioSalvo.Observacao = sorteio.Observacao;
+
+            foreach (var e in sorteioSalvo.Empreendimentos.ToList()) {
+                Context.Empreedimento.Remove(e);
+            }
+
+            var empreedimentos = sorteio.Empreendimentos.ToArray();
+            for (int i = 0; i < empreedimentos.Length; i++) {
+                sorteioSalvo.Empreendimentos.Add(new Empreendimento() {
+                    Ordem = i + 1,
+                    Nome = empreedimentos[i].Nome
+                });
+            }
+
             Context.SaveChanges();
         }
 
         public void ExcluirSorteio(int idSorteio) {
             SorteioE sorteioSalvo = CarregarSorteio(idSorteio);
             VerificarSorteioRealizado(sorteioSalvo);
+
+            var empreendimentos = sorteioSalvo.Empreendimentos.ToList();
+            foreach(var empreendimento in empreendimentos) {
+                Context.Empreedimento.Remove(empreendimento);
+            }
+
             Context.Sorteio.Remove(sorteioSalvo);
             Context.SaveChanges();
         }
@@ -90,14 +124,6 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
                 Id = d.CandidatoSorteio.Id,
                 Cpf = d.CandidatoSorteio.Cpf,
                 Nome = d.CandidatoSorteio.Nome,
-                Idoso = d.CandidatoSorteio.Idoso,
-                AuxilioMoradia = d.CandidatoSorteio.AuxilioMoradia,
-                CriterioSexo = d.CandidatoSorteio.CriterioSexo,
-                CriterioAluguel = d.CandidatoSorteio.CriterioAluguel,
-                CriterioTempo = d.CandidatoSorteio.CriterioTempo,
-                CriterioDeficiente = d.CandidatoSorteio.CriterioDeficiente,
-                CriterioDoenca = d.CandidatoSorteio.CriterioDoenca,
-                CriterioRisco = d.CandidatoSorteio.CriterioRisco,
                 QuantidadeCriterios = d.CandidatoSorteio.QuantidadeCriterios,
                 Contemplado = d.CandidatoSorteio.Contemplado,
                 Sequencia = d.Sequencia,

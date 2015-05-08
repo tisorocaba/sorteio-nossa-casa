@@ -18,10 +18,11 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Persistence {
         protected override void OnModelCreating(DbModelBuilder modelBuilder) {
             Database.SetInitializer<Context>(null);
             CustomConvention.ApplyConfiguration(modelBuilder);
-            modelBuilder.HasDefaultSchema("NOSSACASA");
+            modelBuilder.HasDefaultSchema("NOSSACASA_SORTEIO");
         }
 
         public DbSet<SorteioE> Sorteio { get; set; }
+        public DbSet<Empreendimento> Empreedimento { get; set; }
         public DbSet<CandidatoSorteio> CandidatoSorteio { get; set; }
         public DbSet<ListaSorteio> ListaSorteio { get; set; }
         public DbSet<CandidatoListaSorteio> CandidatoListaSorteio { get; set; }

@@ -19,24 +19,22 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
                     SorteioE sorteio = SorteioService.CarregarSorteio(idSorteio);
                     SorteioService.VerificarSorteioRealizado(sorteio);
 
-                    Context.Database.ExecuteSqlCommand("EXEC NOSSACASA.SP_EXCLUIR_LISTAS_SORTEIO @ID", new SqlParameter("@ID", idSorteio));
+                    Context.Database.ExecuteSqlCommand("EXEC NOSSACASA_SORTEIO.SP_EXCLUIR_LISTAS_SORTEIO @ID", new SqlParameter("@ID", idSorteio));
                     
-                    ImportacaoDataReader wrappedReader = new ImportacaoDataReader(sorteio.Id, 10, reader);
+                    ImportacaoDataReader wrappedReader = new ImportacaoDataReader(sorteio.Id, 8, reader);
                     var innerTx = (SqlTransaction) tx.UnderlyingTransaction;
 
                     SqlBulkCopy bulkInsert = new SqlBulkCopy(innerTx.Connection, SqlBulkCopyOptions.Default, innerTx);
-                    bulkInsert.DestinationTableName = "NOSSACASA.CANDIDATO_SORTEIO";
+                    bulkInsert.DestinationTableName = "NOSSACASA_SORTEIO.CANDIDATO_SORTEIO";
                     bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(0, "CPF"));
                     bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(1, "NOME"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(2, "CRIT_SEXO"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(3, "CRIT_ALUGUEL"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(4, "CRIT_TEMPO"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(5, "CRIT_DEFICIENTE"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(6, "CRIT_DOENCA"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(7, "CRIT_RISCO"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(8, "IDOSO"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(9, "AUXILIO_MORADIA"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(10, "ID_SORTEIO"));
+                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(2, "QUANTIDADE_CRITERIOS"));
+                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(3, "LISTA_GERAL_I"));
+                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(4, "LISTA_GERAL_II"));
+                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(5, "LISTA_IDOSOS"));
+                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(6, "LISTA_DEFICIENTES"));
+                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(7, "LISTA_INDICADOS"));
+                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(8, "ID_SORTEIO"));
 
                     tracker.Total = rowCount * 2 + 1;
                     bulkInsert.NotifyAfter = 100;
@@ -44,7 +42,7 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
                     bulkInsert.WriteToServer(wrappedReader);
                     tracker.Processed = rowCount;
 
-                    Context.Database.ExecuteSqlCommand("EXEC NOSSACASA.SP_CRIAR_LISTAS_SORTEIO @ID", new SqlParameter("@ID", idSorteio));
+                    Context.Database.ExecuteSqlCommand("EXEC NOSSACASA_SORTEIO.SP_CRIAR_LISTAS_SORTEIO @ID", new SqlParameter("@ID", idSorteio));
                     tracker.Processed += rowCount;
 
                     tx.Commit();

@@ -40,7 +40,7 @@ namespace Sorocaba.NossaCasa.Sorteio.Web.Controllers {
         [HttpGet]
         [Route]
         public AjaxRequestResult ListarSorteios() {
-            RequestResult.Data = SorteioService.ListarSorteios();
+            RequestResult.Data = SorteioService.ListarSorteios().ToList();
             return RequestResult;
         }
 

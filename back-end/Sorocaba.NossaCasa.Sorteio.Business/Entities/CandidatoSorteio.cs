@@ -21,40 +21,31 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Entities {
         [MaxLength(100)]
         public string Nome { get; set; }
 
+        [Column("LISTA_DEFICIENTES")]
         [Required]
-        public bool Idoso { get; set; }
+        public bool ListaDeficientes { get; set; }
 
+        [Column("LISTA_IDOSOS")]
         [Required]
-        public bool AuxilioMoradia { get; set; }
+        public bool ListaIdosos { get; set; }
 
-        [Column("CRIT_SEXO")]
+        [Column("LISTA_INDICADOS")]
         [Required]
-        public bool CriterioSexo { get; set; }
+        public bool ListaIndicados { get; set; }
 
-        [Column("CRIT_ALUGUEL")]
+        [Column("LISTA_GERAL_I")]
         [Required]
-        public bool CriterioAluguel { get; set; }
+        public bool ListaGeralI { get; set; }
 
-        [Column("CRIT_TEMPO")]
+        [Column("LISTA_GERAL_II")]
         [Required]
-        public bool CriterioTempo { get; set; }
-
-        [Column("CRIT_DEFICIENTE")]
-        [Required]
-        public bool CriterioDeficiente { get; set; }
-
-        [Column("CRIT_DOENCA")]
-        [Required]
-        public bool CriterioDoenca { get; set; }
-
-        [Column("CRIT_RISCO")]
-        [Required]
-        public bool CriterioRisco { get; set; }
+        public bool ListaGeralII { get; set; }
 
         /// <summary>
         /// Contagem da quantidade de critérios atendidos pelo candidato.
         /// </summary>
-        public int? QuantidadeCriterios { get; set; }
+        [Required]
+        public int QuantidadeCriterios { get; set; }
 
         /// <summary>
         /// Indica se o candidato já foi contemplado em qualquer lista do sorteio.

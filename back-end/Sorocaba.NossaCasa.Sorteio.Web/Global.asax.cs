@@ -13,8 +13,6 @@ namespace Sorocaba.NossaCasa.Sorteio.Web {
 
         protected void Application_Start() {
             GlobalConfiguration.Configure(WebApiConfig.Register);
-            FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
-
             GlobalConfiguration.Configuration.Filters.Add(
                 new CustomExceptionFilterAttribute(new DefaultExceptionTranslator(new DefaultDbConstraintTranslator()))
             );

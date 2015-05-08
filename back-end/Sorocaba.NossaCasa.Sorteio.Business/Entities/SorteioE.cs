@@ -29,5 +29,7 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Entities {
         /// </summary>
         [Required]
         public bool Finalizado { get; set; }
+
+        public virtual ICollection<Empreendimento> Empreendimentos { get; set; }
     }
 }
