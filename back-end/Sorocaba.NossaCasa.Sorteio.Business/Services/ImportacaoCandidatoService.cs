@@ -21,7 +21,7 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
 
                     Context.Database.ExecuteSqlCommand("EXEC NOSSACASA_SORTEIO.SP_EXCLUIR_LISTAS_SORTEIO @ID", new SqlParameter("@ID", idSorteio));
                     
-                    ImportacaoDataReader wrappedReader = new ImportacaoDataReader(sorteio.Id, 8, reader);
+                    ImportacaoDataReader wrappedReader = new ImportacaoDataReader(sorteio.Id, 6, reader);
                     var innerTx = (SqlTransaction) tx.UnderlyingTransaction;
 
                     SqlBulkCopy bulkInsert = new SqlBulkCopy(innerTx.Connection, SqlBulkCopyOptions.Default, innerTx);
@@ -29,12 +29,10 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
                     bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(0, "CPF"));
                     bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(1, "NOME"));
                     bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(2, "QUANTIDADE_CRITERIOS"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(3, "LISTA_GERAL_I"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(4, "LISTA_GERAL_II"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(5, "LISTA_IDOSOS"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(6, "LISTA_DEFICIENTES"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(7, "LISTA_INDICADOS"));
-                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(8, "ID_SORTEIO"));
+                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(3, "LISTA_DEFICIENTES"));
+                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(4, "LISTA_IDOSOS"));
+                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(5, "LISTA_INDICADOS"));
+                    bulkInsert.ColumnMappings.Add(new SqlBulkCopyColumnMapping(6, "ID_SORTEIO"));
 
                     tracker.Total = rowCount * 2 + 1;
                     bulkInsert.NotifyAfter = 100;

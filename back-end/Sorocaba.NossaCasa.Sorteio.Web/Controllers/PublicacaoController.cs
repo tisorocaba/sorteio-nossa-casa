@@ -44,11 +44,11 @@ namespace Sorocaba.NossaCasa.Sorteio.Web.Controllers {
             request.Credentials = new NetworkCredential(ReadSetting("ftp.usuario"), ReadSetting("ftp.senha"));
 
             string data = RenderizarListaSorteio(lista, FormatoExportacao.JSON);
-            ASCIIEncoding encoding = new System.Text.ASCIIEncoding();
+            UTF8Encoding encoding = new System.Text.UTF8Encoding();
             Byte[] bytes = encoding.GetBytes(data);
 
             Stream requestStream = request.GetRequestStream();
-            requestStream.Write(bytes, 0, data.Length);
+            requestStream.Write(bytes, 0, bytes.Length);
             requestStream.Close();
 
             FtpWebResponse response = (FtpWebResponse) request.GetResponse();

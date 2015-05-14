@@ -33,14 +33,6 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Entities {
         [Required]
         public bool ListaIndicados { get; set; }
 
-        [Column("LISTA_GERAL_I")]
-        [Required]
-        public bool ListaGeralI { get; set; }
-
-        [Column("LISTA_GERAL_II")]
-        [Required]
-        public bool ListaGeralII { get; set; }
-
         /// <summary>
         /// Contagem da quantidade de critérios atendidos pelo candidato.
         /// </summary>

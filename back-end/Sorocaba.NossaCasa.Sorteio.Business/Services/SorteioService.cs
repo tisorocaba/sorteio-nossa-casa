@@ -143,7 +143,7 @@ namespace Sorocaba.NossaCasa.Sorteio.Business.Services {
 
         public IQueryable<ListaSorteio> ListarListasSorteio(int idSorteio) {
             SorteioE sorteio = CarregarSorteio(idSorteio);
-            return Context.ListaSorteio.Where(ls => ls.IdSorteio == sorteio.Id);
+            return Context.ListaSorteio.Where(ls => ls.IdSorteio == sorteio.Id).OrderBy(ls => ls.OrdemSorteio);
         }
 
         public IQueryable<CandidatoListaSorteio> ListarCandidatosListaSorteio(int idListaSorteio) {
